@@ -1,11 +1,11 @@
 import { Fact } from '../../components/Fact'
-import { useSim } from '../../sim/store'
+import { openExplore } from '../../explore/actions'
 
 /*
   Pilot saha: Çanakkale Havalimanı. Harita yok; saha 3D dijital ikizde gösterilir.
 */
 
-const openOps = () => useSim.getState().set({ opsOpen: true })
+const explore = () => openExplore({ focus: 'runway' })
 
 export function Site() {
   return (
@@ -77,7 +77,7 @@ export function Site() {
             <b>Sivil–askeri kullanım.</b> Görüntüler buluta gönderilmez; işleme ve depolama havalimanı içindeki kenar sunucuda yapılır.
           </li>
         </ul>
-        <button type="button" className="pbtn" onClick={openOps}>
+        <button type="button" className="pbtn" onClick={explore}>
           Pisti 3D dijital ikizde gez
         </button>
       </div>

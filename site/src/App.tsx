@@ -10,11 +10,13 @@ import { useSim } from './sim/store'
 import { Assumptions } from './components/Assumptions'
 
 const OpsCenter = lazy(() => import('./ops/OpsCenter'))
+const ExploreHud = lazy(() => import('./explore/ExploreHud').then((m) => ({ default: m.ExploreHud })))
 
 export default function App() {
   const route = useRoute()
   const meta = pageById(route.id)
   const opsOpen = useSim((s) => s.opsOpen)
+  const exploreOpen = useSim((s) => s.exploreOpen)
 
   useEffect(() => {
     document.body.classList.toggle('ops-open', opsOpen)
@@ -41,6 +43,11 @@ export default function App() {
       {opsOpen && (
         <Suspense fallback={null}>
           <OpsCenter />
+        </Suspense>
+      )}
+      {exploreOpen && !opsOpen && (
+        <Suspense fallback={null}>
+          <ExploreHud />
         </Suspense>
       )}
     </LangProvider>

@@ -6,6 +6,7 @@ import { usePlanner } from '../planner/store'
 import { DAY_END, DAY_START, TASK_SPEC, actual, fmt } from '../planner/plan'
 import { HiveMini } from './HiveMini'
 import { OpsTeaser } from '../sections/content/OpsTeaser'
+import { openExplore } from '../explore/actions'
 import '../sections/hero.css'
 import './home.css'
 
@@ -60,6 +61,9 @@ export function Home() {
           <div className="hero__actions">
             <button type="button" className="btn btn--primary" onClick={openOps}>
               Operasyon merkezini aç
+            </button>
+            <button type="button" className="btn btn--ghost-light" onClick={() => openExplore()}>
+              3D’de gez (WASD)
             </button>
             <a className="btn btn--ghost-light" href={href('kovan')}>
               Kovanı tanı

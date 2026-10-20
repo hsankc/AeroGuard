@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Fact } from '../../components/Fact'
 import { href } from '../../app/router'
 import { useSim } from '../../sim/store'
+import { openExplore } from '../../explore/actions'
+import { turbinePower } from '../../sim/world/energy'
 
 /*
   Türbin ve enerji adası (Sistem sayfası).
@@ -9,20 +11,12 @@ import { useSim } from '../../sim/store'
   güncel baskıdan doğrulanacak; kesin yer DHMİ mânia görüşüyle belirlenir.
 */
 
-const CUT_IN = 3
-const RATED = 12
 const CUT_OUT = 25
 const RATED_KW = 3
 const TURBINE_H = 9
 const STRIP = 140
 const SLOPE = 7
 
-/** Temsili güç eğrisi (kW): devreye girişten nominale kübik artış, korumada durur. */
-export function turbinePower(v: number) {
-  if (v < CUT_IN || v >= CUT_OUT) return 0
-  if (v >= RATED) return RATED_KW
-  return (RATED_KW * (v ** 3 - CUT_IN ** 3)) / (RATED ** 3 - CUT_IN ** 3)
-}
 
 const allowedHeight = (d: number) => Math.max(0, (d - STRIP) / SLOPE)
 const fmt1 = (n: number) => n.toLocaleString('tr-TR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })
@@ -153,6 +147,9 @@ export function EnergyStory() {
             Türbin pist şeridinin dışında ve geçiş yüzeyinin altında kalmalı: 250 m’de ≈(250 − 140) ÷ 7 ≈ 15,7 m. Ek 14 değerleri güncel baskıdan doğrulanacak; kesin yer DHMİ mânia görüşü ve radar
             etki analiziyle belirlenir.
           </p>
+          <button type="button" className="pbtn" onClick={() => openExplore({ annex: true, focus: 'energy' })}>
+            Ek 14 yüzeylerini 3D’de göster
+          </button>
         </div>
         <div className="tile tile--w5 glass glass--soft">
           <span className="tile__label">Kovanın balı</span>

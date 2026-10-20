@@ -4,6 +4,7 @@ import { href, type RouteId } from './router'
 import { useLang } from '../i18n'
 import { useSim } from '../sim/store'
 import { useUi } from '../components/uiStore'
+import { openExplore } from '../explore/actions'
 import logo from '../assets/logo.webp'
 import './glassnav.css'
 
@@ -55,6 +56,14 @@ export function GlassNav({ current }: { current: RouteId }) {
           <button type="button" className="gnav__tool" onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')} aria-label={lang === 'tr' ? 'Switch to English' : 'Türkçeye geç'}>
             {lang === 'tr' ? 'EN' : 'TR'}
           </button>
+          <button
+            type="button"
+            className="gnav__tool gnav__explore"
+            onClick={() => openExplore()}
+            title="3D havalimanını W A S D ile gezin"
+          >
+            <kbd aria-hidden="true">WASD</kbd> {t({ tr: 'Keşfet', en: 'Explore' })}
+          </button>
           <button type="button" className="btn btn--primary gnav__ops" onClick={openOps}>
             {t({ tr: 'Operasyon merkezi', en: 'Operations' })}
           </button>
@@ -76,6 +85,16 @@ export function GlassNav({ current }: { current: RouteId }) {
           <div className="gnav__sheet-tools">
             <button type="button" className="btn btn--primary" onClick={openOps}>
               Operasyon merkezini aç
+            </button>
+            <button
+              type="button"
+              className="gnav__tool"
+              onClick={() => {
+                setMenu(false)
+                openExplore()
+              }}
+            >
+              3D’de keşfet
             </button>
             <button
               type="button"

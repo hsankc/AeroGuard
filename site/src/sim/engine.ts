@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { PARAMS } from '../data/facts'
 import { confidenceFor, Mission, type DetectTarget } from './mission/mission'
-import { useSim, fmtClock, type CameraMode, type Check, type Detection, type Fault, type FodClass, type LogKind, type Quality } from './store'
+import { useSim, fmtClock, type CameraMode, type Check, type Detection, type Fault, type FodClass, type LogKind, type PickId, type Quality } from './store'
 import { buildAirliner, buildHelicopter } from './world/aircraft'
 import { buildAirfield, type Airfield } from './world/airfield'
 import { CoverageStrips, DroneVisual } from './world/drone'
@@ -16,6 +16,9 @@ import { usePlanner } from '../planner/store'
 import { actual, CKZ_SCHEDULE, DAY_START, type TaskType } from '../planner/plan'
 import { DayRunner } from './day'
 import type { Station as CamStation } from '../app/pages'
+import { PostFx } from './post'
+import { FlyControls } from './explore'
+import { Annex14Layer } from './world/annex14'
 
 /*
   Tarife: kule ön kontrolü ve pencere seçimi planlayıcıdaki seferleri kullanır, böylece planlayıcıda
@@ -53,7 +56,7 @@ export function nextWindow(clock: number) {
 
 const COLORS = { 1: '#3e9b37', 2: '#1478c8' } as const
 
-type Mode = 'hero' | 'ops'
+type Mode = 'hero' | 'ops' | 'explore'
 
 type Label = { el: HTMLDivElement; pos: () => THREE.Vector3 | null; minDist?: number }
 
@@ -134,6 +137,19 @@ export class Engine {
   private detLabels = new Map<number, Label>()
   private pointerDown: { x: number; y: number } | null = null
 
+  /* son işleme ve keşif modu */
+  private post: PostFx | null = null
+  private postQuality: Quality | null = null
+  fly: FlyControls
+  private annex = new Annex14Layer()
+  private pickRoots: THREE.Object3D[] = []
+  private raycaster = new THREE.Raycaster()
+  private pointerNdc = new THREE.Vector2()
+  private pointerIn = false
+  private lastPick = 0
+  hovered: PickId | null = null
+  selected: PickId | null = null
+
   constructor(readonly canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' })
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
@@ -155,7 +171,9 @@ export class Engine {
     this.energy = new EnergyIsland(LAYOUT.energy.x, LAYOUT.energy.z)
     this.scene.add(this.energy.group)
 
-    this.scene.add(this.fod.group, this.geofence.group, buildEmergencyMarks(), this.hazards)
+    const marks = buildEmergencyMarks()
+    marks.userData.pick = 'emergency'
+    this.scene.add(this.fod.group, this.geofence.group, marks, this.hazards, this.annex.group)
 
     const airliner = buildAirliner()
     airliner.group.position.set(LAYOUT.apron.x - 60, 0, LAYOUT.apron.z - 12)
@@ -211,6 +229,28 @@ export class Engine {
     canvas.addEventListener('pointerdown', (e) => (this.pointerDown = { x: e.clientX, y: e.clientY }))
     canvas.addEventListener('pointerup', (e) => this.onPointerUp(e))
 
+    // keşif modu: seçilebilen nesneler, serbest uçuş kamerası, üzerine gelme
+    this.stations[0].group.userData.pick = 'petekA'
+    this.stations[1].group.userData.pick = 'petekB'
+    this.energy.group.userData.pick = 'energy'
+    this.droneVis[0].root.userData.pick = 'drone1'
+    this.droneVis[1].root.userData.pick = 'drone2'
+    this.parked.userData.pick = 'aircraft'
+    this.scene.traverse((o) => {
+      if (o.userData.pick) this.pickRoots.push(o)
+    })
+    this.raycaster.camera = this.camera
+    this.fly = new FlyControls(this.camera, canvas)
+    canvas.addEventListener('pointermove', (e) => {
+      if (this.mode !== 'explore' || e.pointerType === 'touch') return
+      this.pointerIn = true
+      this.pointerNdc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1)
+    })
+    canvas.addEventListener('pointerleave', () => {
+      this.pointerIn = false
+      this.setHovered(null)
+    })
+
     this.applyQuality(useSim.getState().quality)
     this.resize()
     window.addEventListener('resize', () => this.resize())
@@ -226,12 +266,23 @@ export class Engine {
     this.renderer.setSize(w, h, false)
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
+    this.post?.setSize(w, h)
   }
 
   applyQuality(q: Quality) {
     const dpr = window.devicePixelRatio || 1
-    const ratio = q === 'high' ? Math.min(dpr, 1.75) : q === 'medium' ? Math.min(dpr, 1.25) : 1
+    // son işleme açıkken ekran ve ara hedefler aynı çözünürlükte
+    const ratio = q === 'low' ? Math.min(dpr, 1) : PostFx.pixelRatio(q)
     this.renderer.setPixelRatio(ratio)
+    if (q === 'low') {
+      this.post?.dispose()
+      this.post = null
+    } else if (!this.post || this.postQuality !== q) {
+      this.post?.dispose()
+      this.post = new PostFx(this.renderer, this.scene, this.camera, q)
+    }
+    this.postQuality = q
+    this.refreshOutline()
     this.renderer.shadowMap.enabled = q !== 'low'
     this.sky.sun.castShadow = q !== 'low'
     const size = q === 'high' ? 2048 : 1024
@@ -254,12 +305,111 @@ export class Engine {
 
   setMode(mode: Mode) {
     if (mode === this.mode) return
+    const prev = this.mode
     this.mode = mode
+    this.fly.enabled = mode === 'explore'
+    if (prev === 'explore') this.leaveExplore()
     if (mode === 'hero') {
-      this.look.copy(this.controls.target)
-      this.enterHero()
+      if (prev === 'ops') {
+        this.look.copy(this.controls.target)
+        this.enterHero()
+      } else {
+        const d = new THREE.Vector3()
+        this.camera.getWorldDirection(d)
+        this.look.copy(this.camera.position).addScaledVector(d, 60)
+      }
       this.startCamBlend()
+    } else if (mode === 'explore') {
+      if (prev === 'ops') this.enterHero()
+      this.controls.enabled = false
+      this.geofence.setVisible(false)
+      this.camera.clearViewOffset()
+      this.fly.syncFromCamera()
+      // başlangıç: 04 ucunun arkasından, petek A, enerji adası ve pist kadrajda
+      this.fly.flyTo(new THREE.Vector3(-1480, 110, 520), new THREE.Vector3(-420, 0, 60))
     } else this.enterOps()
+  }
+
+  /* ---------- Keşif modu: seçme, inceleme, Ek 14 ---------- */
+
+  private leaveExplore() {
+    this.pointerIn = false
+    this.setHovered(null)
+    this.select(null)
+    this.setAnnex(false)
+    this.canvas.style.cursor = ''
+  }
+
+  private objectsFor(id: PickId | null) {
+    return id ? this.pickRoots.filter((o) => o.userData.pick === id) : []
+  }
+
+  private visibleChain(o: THREE.Object3D | null) {
+    for (let p = o; p; p = p.parent) if (!p.visible) return false
+    return true
+  }
+
+  /** Ekran noktasındaki en yakın seçilebilir nesne */
+  pickAt(ndc: THREE.Vector2): PickId | null {
+    this.raycaster.setFromCamera(ndc, this.camera)
+    for (const h of this.raycaster.intersectObjects(this.pickRoots, true)) {
+      if (!this.visibleChain(h.object)) continue
+      for (let p: THREE.Object3D | null = h.object; p; p = p.parent) if (p.userData.pick) return p.userData.pick as PickId
+    }
+    return null
+  }
+
+  private setHovered(id: PickId | null) {
+    if (id === this.hovered) return
+    this.hovered = id
+    if (this.mode === 'explore') this.canvas.style.cursor = id ? 'pointer' : ''
+    useSim.getState().set({ hovered: id })
+    this.refreshOutline()
+  }
+
+  select(id: PickId | null) {
+    this.selected = id
+    useSim.getState().set({ selected: id })
+    this.refreshOutline()
+  }
+
+  private refreshOutline() {
+    const objs = [...new Set([...this.objectsFor(this.hovered), ...this.objectsFor(this.selected)])]
+    this.post?.setOutlined(objs)
+  }
+
+  /** Seçilen nesneye uç (F tuşu, karttaki Odaklan) */
+  focusPick(id: PickId | null = this.selected) {
+    const objs = this.objectsFor(id)
+    if (!objs.length) return
+    const box = new THREE.Box3()
+    objs.forEach((o) => box.expandByObject(o))
+    const center = box.getCenter(new THREE.Vector3())
+    const r = Math.max(3, box.getSize(new THREE.Vector3()).length() / 2)
+    const dir = this.camera.position.clone().sub(center).setY(0)
+    if (dir.lengthSq() < 1) dir.set(-1, 0, 1)
+    dir.normalize()
+    const dist = r * 1.7 + 6
+    const pos = center.clone().addScaledVector(dir, dist)
+    pos.y = center.y + Math.max(4, dist * 0.42)
+    this.fly.flyTo(pos, center)
+  }
+
+  /** Ek 14 yüzeylerini göster/gizle */
+  setAnnex(on: boolean) {
+    this.annex.setVisible(on)
+    if (useSim.getState().annex14 !== on) useSim.getState().set({ annex14: on })
+  }
+
+  /** Anlık enerji üretimi (kW), inceleme kartı için */
+  energyOutput() {
+    return EnergyIsland.output(this.sky.elev, useSim.getState().wind)
+  }
+
+  private updatePick() {
+    if (!this.pointerIn || this.realT - this.lastPick < 0.1) return
+    this.lastPick = this.realT
+    this.setHovered(this.pickAt(this.pointerNdc))
   }
 
   /** Sayfa değişti: kamera yeni istasyona uçar. */
@@ -288,7 +438,7 @@ export class Engine {
     useSim.getState().set({ clock: 8 * 3600 + 15 * 60, wind: 5.2 })
     this.mission.launch()
     this.heroWait = 0
-    this.geofence.setVisible(this.station === 'safety')
+    this.geofence.setVisible(this.mode === 'hero' && this.station === 'safety')
   }
 
   private enterOps() {
@@ -603,7 +753,7 @@ export class Engine {
 
   private onPhase(p: string, reason?: string) {
     const s = useSim.getState()
-    if (this.mode === 'hero') {
+    if (this.mode !== 'ops') {
       if (p === 'verify') this.heroWait = 0.001
       return
     }
@@ -832,6 +982,12 @@ export class Engine {
     const down = this.pointerDown
     this.pointerDown = null
     const s = useSim.getState()
+    if (this.mode === 'explore') {
+      if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return
+      const ndc = new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1)
+      this.select(this.pickAt(ndc))
+      return
+    }
     if (this.mode !== 'ops' || !s.placing || !down) return
     if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return
     const ndc = new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1)
@@ -890,6 +1046,10 @@ export class Engine {
 
   private updateCamera(dt: number) {
     const s = useSim.getState()
+    if (this.mode === 'explore') {
+      this.fly.update(dt)
+      return
+    }
     if (this.mode === 'hero') {
       const want = new THREE.Vector3()
       const look = new THREE.Vector3()
@@ -964,12 +1124,13 @@ export class Engine {
     this.last = now
     this.realT += dtReal
     const s = useSim.getState()
-    const speed = this.mode === 'hero' ? 6 : s.paused ? 0 : s.speed
+    const cinematic = this.mode !== 'ops'
+    const speed = cinematic ? 6 : s.paused ? 0 : s.speed
     const dtSim = dtReal * speed
 
     // görev adımları: sabit alt adımlar
     const day = this.day
-    const live = this.mode === 'hero' || !!day || ['flight', 'return', 'verify', 'report'].includes(s.phase)
+    const live = cinematic || !!day || ['flight', 'return', 'verify', 'report'].includes(s.phase)
     if (live && dtSim > 0 && !(day && day.finished)) {
       let left = dtSim
       let c = s.clock
@@ -1027,7 +1188,7 @@ export class Engine {
     }
 
     // kahraman (hero) döngüsü: görev bitince yeniden başla
-    if (this.mode === 'hero' && this.heroWait > 0) {
+    if (cinematic && this.heroWait > 0) {
       this.heroWait += dtReal
       if (this.heroWait > 3) this.enterHero()
     }
@@ -1052,9 +1213,11 @@ export class Engine {
     const focus =
       this.mode === 'ops' && s.cameraMode === 'overview'
         ? this.controls.target.clone()
-        : this.mode === 'hero' && this.station !== 'hero' && this.station !== 'missions'
-          ? this.look.clone()
-          : this.mission.drones[0].pos.clone()
+        : this.mode === 'explore'
+          ? this.exploreFocus()
+          : this.mode === 'hero' && this.station !== 'hero' && this.station !== 'missions'
+            ? this.look.clone()
+            : this.mission.drones[0].pos.clone()
     focus.y = 0
     this.sky.update(s.clock, focus, this.renderer, this.pmrem)
     const night = this.sky.night
@@ -1080,12 +1243,30 @@ export class Engine {
       else this.camera.setViewOffset(W, H, 0, H * 0.3 * k, W, H)
     } else if (this.camera.view?.enabled) this.camera.clearViewOffset()
 
+    if (this.mode === 'explore') {
+      this.updatePick()
+      this.annex.update(this.camera.position)
+    }
+
     this.renderer.shadowMap.needsUpdate = true
-    this.renderer.render(this.scene, this.camera)
+    if (this.post) {
+      this.post.setNight(night)
+      this.post.render(dtReal)
+    } else this.renderer.render(this.scene, this.camera)
     this.renderPip()
     this.updateLabels()
 
     if (this.realT - this.lastSync > 0.1) this.sync()
+  }
+
+  /** Keşif modunda gölge ve gökyüzü odağı: kameranın biraz önü */
+  private exploreFocus() {
+    const d = new THREE.Vector3()
+    this.camera.getWorldDirection(d)
+    d.y = 0
+    if (d.lengthSq() < 1e-6) d.set(1, 0, 0)
+    d.normalize()
+    return this.camera.position.clone().addScaledVector(d, Math.min(160, 20 + this.camera.position.y * 1.5))
   }
 
   /** Geliştirme: n kare ilerlet (gizli sekmede requestAnimationFrame çalışmaz). */

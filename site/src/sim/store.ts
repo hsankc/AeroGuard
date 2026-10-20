@@ -75,8 +75,16 @@ export type Quality = 'low' | 'medium' | 'high'
 
 export type Check = { id: string; label: string; value: string; ok: boolean | null }
 
+/** Keşif modunda seçilebilen nesneler */
+export type PickId = 'petekA' | 'petekB' | 'drone1' | 'drone2' | 'energy' | 'tower' | 'terminal' | 'arff' | 'aircraft' | 'runway' | 'windsock' | 'emergency'
+
 type State = {
   opsOpen: boolean
+  /** keşif modu (WASD) açık mı */
+  exploreOpen: boolean
+  hovered: PickId | null
+  selected: PickId | null
+  annex14: boolean
   cameraMode: CameraMode
   pipDrone: 1 | 2
   placing: boolean
@@ -121,6 +129,10 @@ const initialDrones: DroneTelemetry[] = [
 
 export const useSim = create<State & Actions>((set, get) => ({
   opsOpen: false,
+  exploreOpen: false,
+  hovered: null,
+  selected: null,
+  annex14: false,
   cameraMode: 'overview',
   pipDrone: 1,
   placing: false,

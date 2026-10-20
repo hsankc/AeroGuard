@@ -2,6 +2,13 @@ import * as THREE from 'three'
 import { RWY } from './layout'
 import { solarCellTexture } from './textures'
 
+/** Temsili türbin güç eğrisi (kW): ≈3 m/s'de devreye girer, ≈12 m/s'de 3 kW, ≈25 m/s'de korumaya geçer. */
+export function turbinePower(v: number) {
+  if (v < 3 || v >= 25) return 0
+  if (v >= 12) return 3
+  return (3 * (v ** 3 - 27)) / (12 ** 3 - 27)
+}
+
 /*
   Enerji adası: 4 kWp güneş paneli (10 × 400 W), 3 kW helisel dikey eksenli türbin,
   20 kWh LFP batarya kabini ve kenar YZ sunucusu.
@@ -121,8 +128,6 @@ export class EnergyIsland {
   /** Temsili anlık üretim (kW): güneş yükseklik açısına, rüzgâr güç eğrisine bağlı. */
   static output(sunElev: number, wind: number) {
     const pv = 4 * Math.max(0, Math.sin(sunElev)) * 0.78
-    const v = Math.max(0, Math.min(1, (wind - 3) / (12 - 3)))
-    const turbine = wind > 25 ? 0 : 3 * v * v * v
-    return { pv, turbine }
+    return { pv, turbine: turbinePower(wind) }
   }
 }

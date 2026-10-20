@@ -1,0 +1,303 @@
+/* Keşif modu: tuval sayfaların önüne geçer, arayüz cam paneller olarak üstünde durur */
+
+.xhud {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  pointer-events: none;
+  color: var(--ink);
+  font-family: var(--font-ui);
+}
+
+.xhud > * {
+  pointer-events: auto;
+}
+
+.xhud kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.7em;
+  height: 1.7em;
+  padding: 0 0.35em;
+  border: 1px solid var(--glass-border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.78em;
+}
+
+.xhud__kicker {
+  color: var(--honey);
+  font-weight: 700;
+  font-size: var(--fs-12);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* sol üst panel */
+.xhud__panel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: grid;
+  gap: 12px;
+  width: min(330px, calc(100vw - 24px));
+  padding: 16px 18px;
+  border-radius: var(--radius-l);
+}
+
+.xhud__head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.xhud__head h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-24);
+  line-height: 1.1;
+}
+
+.xhud__exit {
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.xhud__exit kbd {
+  border-color: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.12);
+  color: inherit;
+}
+
+.xhud__switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+  cursor: pointer;
+}
+
+.xhud__switch input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--honey);
+}
+
+.xhud__help-toggle {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font: inherit;
+  font-size: var(--fs-14);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.xhud__keys {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--fs-14);
+}
+
+.xhud__keys > div {
+  display: grid;
+  grid-template-columns: 8.5em 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.xhud__keys dt {
+  display: flex;
+  gap: 4px;
+  color: var(--ink-3);
+}
+
+.xhud__keys dd {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.xhud__note {
+  color: var(--ink-3);
+  font-size: var(--fs-12);
+}
+
+/* üzerine gelinen nesne */
+.xhud__tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--honey) 60%, transparent);
+  border-radius: 8px;
+  background: rgba(8, 16, 30, 0.86);
+  font-weight: 700;
+  font-size: var(--fs-14);
+  pointer-events: none !important;
+  white-space: nowrap;
+}
+
+.xhud__tip small {
+  color: var(--ink-3);
+  font-weight: 500;
+  font-size: var(--fs-12);
+}
+
+/* bilgi kartı */
+.xhud__card {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: grid;
+  gap: 10px;
+  width: min(380px, calc(100vw - 24px));
+  max-height: calc(100svh - 24px);
+  overflow: auto;
+  padding: 18px 20px;
+  border-radius: var(--radius-l);
+  animation: xhud-in 0.25s var(--ease-out) both;
+}
+
+@keyframes xhud-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.xhud__card h2 {
+  padding-right: 28px;
+  font-family: var(--font-display);
+  font-size: var(--fs-36);
+  line-height: 1.02;
+}
+
+.xhud__card p {
+  color: var(--ink-2);
+  font-size: var(--fs-16);
+}
+
+.xhud__card dl {
+  display: grid;
+  margin: 0;
+}
+
+.xhud__card dl > div {
+  display: grid;
+  grid-template-columns: 9em 1fr;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-14);
+}
+
+.xhud__card dt {
+  color: var(--ink-3);
+}
+
+.xhud__card dd {
+  margin: 0;
+}
+
+.xhud__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.xhud__actions kbd {
+  margin-left: 6px;
+}
+
+.xhud__x {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink-2);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* telefon kontrolleri */
+.xhud__stick,
+.xhud__lift {
+  display: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .xhud__stick {
+    position: absolute;
+    left: 20px;
+    bottom: 24px;
+    display: grid;
+    place-items: center;
+    width: 120px;
+    height: 120px;
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
+    background: rgba(8, 16, 30, 0.4);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    touch-action: none;
+  }
+  .xhud__stick span {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--honey) 75%, transparent);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+  .xhud__lift {
+    position: absolute;
+    right: 20px;
+    bottom: 24px;
+    display: grid;
+    gap: 10px;
+  }
+  .xhud__lift button {
+    width: 56px;
+    height: 56px;
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
+    background: rgba(8, 16, 30, 0.5);
+    color: var(--ink);
+    font-size: 18px;
+    touch-action: none;
+  }
+  /* kart açıkken telefonda alttan çıkan sayfa olur, joystick gizlenir */
+  .xhud__card {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: 55svh;
+  }
+  .xhud__card ~ .xhud__stick,
+  .xhud__card ~ .xhud__lift {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xhud__card {
+    animation: none;
+  }
+}

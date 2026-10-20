@@ -6,12 +6,15 @@ import './sim.css'
 
 /*
   Sabit, tam ekran 3D tuval. Her sayfanın arkasında canlı durur:
-  sayfalarda sinematik modda (kamera sayfanın istasyonuna uçar), operasyon merkezi açıkken etkileşimli modda.
+  sayfalarda sinematik modda (kamera sayfanın istasyonuna uçar), keşif modunda serbest uçuşla (WASD),
+  operasyon merkezi açıkken etkileşimli modda.
   Sekme gizliyken tarayıcı çizimi kendiliğinden durdurur.
 */
 export function SimHost({ station }: { station: Station }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const opsOpen = useSim((s) => s.opsOpen)
+  const exploreOpen = useSim((s) => s.exploreOpen)
+  const mode = opsOpen ? 'ops' : exploreOpen ? 'explore' : 'hero'
   const quality = useSim((s) => s.quality)
   const stationRef = useRef(station)
   stationRef.current = station
@@ -37,7 +40,8 @@ export function SimHost({ station }: { station: Station }) {
         return
       }
       engine.setStation(stationRef.current)
-      engine.setMode(useSim.getState().opsOpen ? 'ops' : 'hero')
+      const s = useSim.getState()
+      engine.setMode(s.opsOpen ? 'ops' : s.exploreOpen ? 'explore' : 'hero')
       engine.setActive(true)
     }
     start()
@@ -47,8 +51,8 @@ export function SimHost({ station }: { station: Station }) {
   }, [])
 
   useEffect(() => {
-    getEngine()?.setMode(opsOpen ? 'ops' : 'hero')
-  }, [opsOpen])
+    getEngine()?.setMode(mode)
+  }, [mode])
 
   useEffect(() => {
     getEngine()?.setStation(station)
@@ -59,7 +63,10 @@ export function SimHost({ station }: { station: Station }) {
   }, [quality])
 
   return (
-    <div className={`sim-host ${opsOpen ? 'sim-host--ops' : ''} ${station === 'hero' ? '' : 'sim-host--page'}`} aria-hidden={!opsOpen}>
+    <div
+      className={`sim-host ${opsOpen ? 'sim-host--ops' : ''} ${exploreOpen ? 'sim-host--explore' : ''} ${station === 'hero' || exploreOpen ? '' : 'sim-host--page'}`}
+      aria-hidden={mode === 'hero'}
+    >
       <canvas ref={ref} className="sim-canvas" />
     </div>
   )

@@ -15,6 +15,15 @@
   z-index: 90;
 }
 
+/* keşif modu: tuval sayfaların ve menünün önüne geçer */
+.sim-host--explore {
+  z-index: 80;
+}
+
+body.explore-open {
+  overflow: hidden;
+}
+
 /* içerik sayfalarında sahne arka plandır: hafif karartma, cam panellerdeki yazı okunaklı kalsın */
 .sim-host--page:not(.sim-host--ops)::after {
   content: '';
