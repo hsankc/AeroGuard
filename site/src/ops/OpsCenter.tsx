@@ -7,6 +7,7 @@ import { LOG_LABEL, MODE_LABEL, PHASE_LABEL, STEPS, stepIndex } from './labels'
 import { DAY_END, DAY_START } from '../planner/plan'
 import { TowerModal } from './TowerModal'
 import { ReportModal } from './ReportModal'
+import { navigate } from '../app/router'
 import './ops.css'
 
 const e = () => getEngine()
@@ -67,7 +68,7 @@ function DayCard() {
   const backToPlanner = () => {
     getEngine()?.stopDay(false)
     set({ opsOpen: false, placing: false })
-    window.setTimeout(() => document.getElementById('planner')?.scrollIntoView({ behavior: 'smooth' }), 80)
+    window.setTimeout(() => navigate('planlayici'), 80)
   }
   return (
     <section className="ops-card" aria-labelledby="day-h">

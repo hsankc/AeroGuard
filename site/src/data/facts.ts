@@ -29,6 +29,9 @@ export const SOURCES: Record<number, string> = {
   14: 'DJI Enterprise. DJI Dock 2 ve Matrice 3D/3TD teknik özellikleri.',
   15: 'Ekonomist (2023). Türkiye’de rüzgâr enerjisinde lider iller (Aralık 2023).',
   16: 'Airports Council International. Airport Carbon Accreditation programı.',
+  17: 'EASA (2024). Safety Information Bulletin 2022-02R3: Global Navigation Satellite System outages and alterations.',
+  18: 'SEI projesi (Spectral Evidence of Ice): Drones 4(3):45 (2020) ve ISPRS Archives XLIII-B2-2020: drone ile buz tespiti.',
+  19: 'DJI Matrice 350 RTK teknik özellikleri (satıcı sayfaları; DJI resmi verisiyle doğrulanacak).',
 }
 
 /** Hesap makineleri ve simülasyon için sayısal girdiler (rapordaki varsayılanlar). */
@@ -332,6 +335,56 @@ export const FACTS = {
   kpiReport: { value: '≤ 2 dk', label: 'Tarama bitiminden kuleye rapor', note: 'Pilotta ölçülerek doğrulanacak hedef.' },
   kpiCompletion: { value: '≥ %85', label: 'Planlanan taramaların gerçekleşmesi', note: 'Rüzgâr ve yağış nedeniyle iptal edilenler dahil.' },
   kpiEnergy: { value: '≥ %80', label: 'Yıllık enerji öz-yeterliliği', note: 'Pilotta ölçülerek doğrulanacak hedef.' },
+
+  /* V3: kovan (ön tahmin, ±%30) */
+  hiveMini: {
+    value: '≈124 bin $',
+    label: 'Mini kovan kurulumu (v2)',
+    note: '2 kâşif, 2 petek hücresi, enerji adası, kenar sunucu, yazılım ve izinler. Rapordaki Tablo 8.',
+  },
+  hiveCkz: {
+    value: '≈215 bin $',
+    label: 'Çanakkale kovanı kurulumu (V3, önerilen)',
+    note: 'Mini kovan + bekçi hücresi ≈20 + işçi hücresi ≈35 + nöbetçi kameralar ≈14 + güvenli konum ≈12 + kovan yazılımı ≈10 bin $. V3 ön tahmini, ±%30.',
+  },
+  hiveWinter: {
+    value: '≈220 bin $',
+    label: 'Kış kovanı kurulumu (V3)',
+    note: 'Çanakkale kovanı + bakıcı rolü (yazılım ve kalibrasyon ≈5 bin $). Soğuk iklimli bölgesel havalimanları için.',
+  },
+  hiveYear: {
+    value: '≈62 bin $/yıl',
+    label: 'Çanakkale kovanı, beş yıla yayılmış yıllık maliyet',
+    note: '(≈215 bin $ + 5 × ≈19 bin $ işletme) ÷ 5. V3 ön tahmini.',
+  },
+  workerPayload: {
+    value: '≈2,7 kg',
+    label: 'İşçi drone azami faydalı yük',
+    note: 'Matrice 350 RTK sınıfı, üretici verisi. Vinç ve toplama başlığı ≈1,2 kg (tasarım tahmini).',
+    src: [19],
+  },
+  pickupLimit: {
+    value: '≤ 1 kg',
+    label: 'İşçinin toplayabileceği nesne',
+    note: 'Yük bütçesinden %33 payla tasarım sınırı; ≤ 30 cm. Islak, yapışık, sıvı ve büyük keskin parçalar saha ekibinde.',
+  },
+  sentinelKpi: {
+    value: '≤ 10 sn',
+    label: 'Olaydan kule uyarısına (hedef)',
+    note: 'Nöbetçi kameralar ve YZ; pilotta ölçülecek hedef.',
+  },
+  gnssRisk: {
+    value: 'Akdeniz',
+    label: 'GNSS karıştırma ve aldatmanın arttığı bölgeler arasında',
+    note: 'EASA’nın 2024 bülteni; 2022 sürümü Kıbrıs ve Türkiye çevresini ayrıca anıyordu.',
+    src: [17],
+  },
+  iceTrl: {
+    value: 'TRL 3–4',
+    label: 'Buz haritası rolünün olgunluğu',
+    note: 'Drone ile uçakta buz tespiti araştırma aşamasında; hiperspektral kamera daha güvenilir bulundu.',
+    src: [18],
+  },
 
   /* Yol haritası */
   roadmap: {

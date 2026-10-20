@@ -1,0 +1,114 @@
+.hero {
+  padding-top: calc(var(--nav-h) + 40px);
+}
+
+.hero__readout {
+  padding: 0 20px;
+  border-top: 1px solid var(--glass-border);
+  border-radius: var(--radius-l);
+}
+
+.home {
+  position: relative;
+  z-index: 1;
+  padding: 24px var(--gutter) 96px;
+}
+
+.home .bento {
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.home-block {
+  max-width: 1240px;
+  margin: 28px auto 0;
+}
+
+/* kovan kutusu */
+.home-hive .hive-mini {
+  width: min(420px, 100%);
+  margin: 6px auto 0;
+}
+
+.hive-mini {
+  display: block;
+  height: auto;
+  font-family: var(--font-ui);
+}
+
+.hive-mini__cell polygon {
+  fill: color-mix(in srgb, var(--c) 14%, rgba(10, 20, 36, 0.6));
+  stroke: color-mix(in srgb, var(--c) 70%, transparent);
+  stroke-width: 2;
+  transition: fill 0.2s;
+}
+
+.hive-mini__cell circle {
+  fill: var(--c);
+}
+
+.hive-mini__cell.is-on polygon,
+.hive-mini__cell.is-btn:hover polygon,
+.hive-mini__cell.is-btn:focus-visible polygon {
+  fill: color-mix(in srgb, var(--c) 30%, rgba(10, 20, 36, 0.6));
+  stroke: var(--c);
+  stroke-width: 3;
+}
+
+.hive-mini__cell.is-btn {
+  cursor: pointer;
+}
+
+.hive-mini__cell.is-btn:focus {
+  outline: none;
+}
+
+.hive-mini__name {
+  fill: var(--ink);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.hive-mini__count {
+  fill: var(--ink-2);
+  font-size: 12px;
+}
+
+/* planlayıcı kutusu */
+.mini-day {
+  width: 100%;
+  height: 72px;
+  margin: 4px 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mini-day__move {
+  stroke: rgba(224, 56, 79, 0.75);
+  stroke-width: 0.35;
+  vector-effect: non-scaling-stroke;
+}
+
+.mini-day__task {
+  fill: var(--station-hi);
+}
+
+.mini-day__task--fence {
+  fill: var(--fence);
+}
+
+.mini-day__task--health {
+  fill: var(--health-hi);
+}
+
+.mini-day__task--wildlife {
+  fill: var(--energy-hi);
+}
+
+.mini-day__task.is-off {
+  fill: rgba(255, 255, 255, 0.18);
+}
+
+.home-emergency {
+  border-color: rgba(224, 56, 79, 0.35) !important;
+}

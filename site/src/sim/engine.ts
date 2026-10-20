@@ -15,6 +15,7 @@ import { Station } from './world/station'
 import { usePlanner } from '../planner/store'
 import { actual, CKZ_SCHEDULE, DAY_START, type TaskType } from '../planner/plan'
 import { DayRunner } from './day'
+import type { Station as CamStation } from '../app/pages'
 
 /*
   Tarife: kule ön kontrolü ve pencere seçimi planlayıcıdaki seferleri kullanır, böylece planlayıcıda
@@ -56,6 +57,24 @@ type Mode = 'hero' | 'ops'
 
 type Label = { el: HTMLDivElement; pos: () => THREE.Vector3 | null; minDist?: number }
 
+/*
+  Kamera istasyonları: sayfa açıkken kamera ilgili nesnenin çevresinde yavaşça döner.
+  hero istasyonu sinematik drone takibidir (ana sayfa).
+  r: yatay yarıçap, h: yükseklik, a: başlangıç açısı (rad), w: dönüş hızı (rad/s)
+*/
+type Orbit = { target: () => THREE.Vector3; r: number; h: number; a: number; w: number; fov?: number }
+const v3 = (x: number, y: number, z: number) => () => new THREE.Vector3(x, y, z)
+const ORBITS: Record<Exclude<CamStation, 'hero' | 'missions'>, Orbit> = {
+  hive: { target: v3(LAYOUT.stationA.x + 4, 3, LAYOUT.stationA.z), r: 46, h: 17, a: 2.3, w: 0.045 },
+  system: { target: v3(-150, 0, -30), r: 1750, h: 560, a: 2.55, w: 0.008 },
+  hangar: { target: v3(LAYOUT.stationB.x, 2.5, LAYOUT.stationB.z), r: 24, h: 8, a: 0.9, w: 0.06 },
+  emergency: { target: v3(-80, 0, 0), r: 620, h: 150, a: -1.35, w: 0.012 },
+  planner: { target: v3(0, 0, 0), r: 1500, h: 420, a: 2.1, w: 0.008 },
+  impact: { target: v3(LAYOUT.energy.x, 4, LAYOUT.energy.z), r: 48, h: 16, a: 1.9, w: 0.04 },
+  safety: { target: v3(-700, 0, 0), r: 420, h: 150, a: 2.5, w: 0.015 },
+  overview: { target: v3(0, 0, -60), r: 2100, h: 760, a: 1.9, w: 0.006 },
+}
+
 export class Engine {
   renderer: THREE.WebGLRenderer
   scene = new THREE.Scene()
@@ -88,6 +107,12 @@ export class Engine {
   private thumbRT: THREE.WebGLRenderTarget
 
   mode: Mode = 'hero'
+  /** Sinematik moddaki kamera istasyonu (sayfaya göre) */
+  station: CamStation = 'hero'
+  private stationStart = 0
+  private look = new THREE.Vector3()
+  private lastDraw = 0
+  private reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
   private running = false
   private raf = 0
   private last = 0
@@ -230,8 +255,29 @@ export class Engine {
   setMode(mode: Mode) {
     if (mode === this.mode) return
     this.mode = mode
-    if (mode === 'hero') this.enterHero()
-    else this.enterOps()
+    if (mode === 'hero') {
+      this.look.copy(this.controls.target)
+      this.enterHero()
+      this.startCamBlend()
+    } else this.enterOps()
+  }
+
+  /** Sayfa değişti: kamera yeni istasyona uçar. */
+  setStation(st: CamStation) {
+    if (st === this.station) return
+    this.station = st
+    this.stationStart = this.realT
+    if (this.mode === 'hero') {
+      this.startCamBlend()
+      this.geofence.setVisible(st === 'safety')
+    }
+  }
+
+  private startCamBlend() {
+    this.camFromPos.copy(this.camera.position)
+    this.camFromTarget.copy(this.look)
+    // ilk kare çizilmeden istasyon verilirse (sayfa doğrudan açıldı) kamera uçmadan yerine konur
+    this.camBlend = this.reducedMotion || this.realT === 0 ? 1 : 0
   }
 
   private enterHero() {
@@ -242,7 +288,7 @@ export class Engine {
     useSim.getState().set({ clock: 8 * 3600 + 15 * 60, wind: 5.2 })
     this.mission.launch()
     this.heroWait = 0
-    this.geofence.setVisible(false)
+    this.geofence.setVisible(this.station === 'safety')
   }
 
   private enterOps() {
@@ -820,28 +866,51 @@ export class Engine {
     }
   }
 
+  /** Sinematik drone takibi: drone yakın planda; missions istasyonunda daha geniş kadraj. */
+  private followCam(dt: number, pos: THREE.Vector3, look: THREE.Vector3) {
+    const d = this.mission.drones[0]
+    const t = this.realT
+    const wide = this.station === 'missions'
+    const th = 0.9 + Math.sin(t * 0.05) * 0.35
+    const fx = Math.cos(d.yaw)
+    const fz = Math.sin(d.yaw)
+    const back = new THREE.Vector3(-fx, 0, -fz)
+    const side = new THREE.Vector3(fz, 0, -fx) // pistin sol omzu tarafı: kamera pisti enlemesine görür
+    const dist = wide ? 34 : 11
+    const want = new THREE.Vector3()
+      .addScaledVector(back, Math.cos(th) * dist)
+      .addScaledVector(side, Math.sin(th) * dist)
+      .add(new THREE.Vector3(0, wide ? 13 : 4.2, 0))
+    // ofset drone'a göre yumuşatılır; konum doğrudan drone'a bağlı olduğu için kamera geride kalmaz
+    this.heroOffset.lerp(want, Math.min(1, dt * 1.2))
+    pos.copy(d.pos).add(this.heroOffset)
+    pos.y = Math.max(6, pos.y)
+    look.copy(d.pos).add(new THREE.Vector3(0, wide ? -4 : -2.2, 0))
+  }
+
   private updateCamera(dt: number) {
     const s = useSim.getState()
     if (this.mode === 'hero') {
-      // Sinematik takip: drone yakın planda, görüntünün sağında (sol taraf başlık metnine ayrılır)
-      const d = this.mission.drones[0]
-      const t = this.realT
-      const th = 0.9 + Math.sin(t * 0.05) * 0.35
-      const fx = Math.cos(d.yaw)
-      const fz = Math.sin(d.yaw)
-      const back = new THREE.Vector3(-fx, 0, -fz)
-      const side = new THREE.Vector3(fz, 0, -fx) // pistin sol omzu tarafı: kamera pisti enlemesine görür
       const want = new THREE.Vector3()
-        .addScaledVector(back, Math.cos(th) * 11)
-        .addScaledVector(side, Math.sin(th) * 11)
-        .add(new THREE.Vector3(0, 4.2, 0))
-      // ofset drone'a göre yumuşatılır; konum doğrudan drone'a bağlı olduğu için kamera geride kalmaz
-      this.heroOffset.lerp(want, Math.min(1, dt * 1.2))
-      const pos = d.pos.clone().add(this.heroOffset)
-      pos.y = Math.max(6, pos.y)
-      this.camera.position.copy(pos)
-      this.camTarget.copy(d.pos).add(new THREE.Vector3(0, -2.2, 0))
-      this.camera.lookAt(this.camTarget)
+      const look = new THREE.Vector3()
+      if (this.station === 'hero' || this.station === 'missions') this.followCam(dt, want, look)
+      else {
+        const o = ORBITS[this.station]
+        const a = o.a + (this.reducedMotion ? 0 : (this.realT - this.stationStart) * o.w)
+        look.copy(o.target())
+        want.set(look.x + Math.cos(a) * o.r, o.h, look.z + Math.sin(a) * o.r)
+      }
+      if (this.camBlend < 1) {
+        this.camBlend = Math.min(1, this.camBlend + dt / 1.6)
+        const k = this.camBlend < 0.5 ? 4 * this.camBlend ** 3 : 1 - Math.pow(-2 * this.camBlend + 2, 3) / 2
+        const span = this.camFromPos.distanceTo(want)
+        want.lerpVectors(this.camFromPos, want, k)
+        want.y += Math.sin(k * Math.PI) * Math.min(260, span * 0.2) // uzun geçişlerde yay çizerek uçar
+        look.lerpVectors(this.camFromTarget, look, k)
+      }
+      this.camera.position.copy(want)
+      this.look.copy(look)
+      this.camera.lookAt(look)
       return
     }
     const mode = s.cameraMode
@@ -883,6 +952,9 @@ export class Engine {
     if (!this.running) return
     cancelAnimationFrame(this.raf)
     this.raf = requestAnimationFrame(this.loop)
+    // içerik sayfalarında sahne cam panellerin arkasında: ≈30 fps yeterli (pil ve işlemci tasarrufu)
+    if (this.mode === 'hero' && this.station !== 'hero' && now - this.lastDraw < 30) return
+    this.lastDraw = now
     this.frame(now)
   }
 
@@ -977,7 +1049,12 @@ export class Engine {
     }
 
     // görseller
-    const focus = this.mode === 'ops' && s.cameraMode === 'overview' ? this.controls.target.clone() : this.mission.drones[0].pos.clone()
+    const focus =
+      this.mode === 'ops' && s.cameraMode === 'overview'
+        ? this.controls.target.clone()
+        : this.mode === 'hero' && this.station !== 'hero' && this.station !== 'missions'
+          ? this.look.clone()
+          : this.mission.drones[0].pos.clone()
     focus.y = 0
     this.sky.update(s.clock, focus, this.renderer, this.pmrem)
     const night = this.sky.night
@@ -997,9 +1074,10 @@ export class Engine {
     if (this.mode === 'hero') {
       const W = window.innerWidth
       const H = window.innerHeight
-      // geniş ekranda drone sağa (başlık solda), dar ekranda yukarı (başlık altta) kaydırılır
-      if (W > 900) this.camera.setViewOffset(W, H, -W * 0.2, H * 0.04, W, H)
-      else this.camera.setViewOffset(W, H, 0, H * 0.3, W, H)
+      // geniş ekranda nesne sağa (başlık solda), dar ekranda yukarı (başlık altta) kaydırılır
+      const k = this.station === 'hero' ? 1 : 0.75
+      if (W > 900) this.camera.setViewOffset(W, H, -W * 0.2 * k, H * 0.04, W, H)
+      else this.camera.setViewOffset(W, H, 0, H * 0.3 * k, W, H)
     } else if (this.camera.view?.enabled) this.camera.clearViewOffset()
 
     this.renderer.shadowMap.needsUpdate = true

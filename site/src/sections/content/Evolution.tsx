@@ -35,8 +35,8 @@ const CHANGES = [
   {
     topic: 'De-icing / glikol',
     before: 'Termal buz haritalama, glikol geri dönüşümü',
-    after: 'Kapsam dışı',
-    why: 'Buzlanma koşullarında küçük drone uçamaz; buz kontrolü yasal olarak ekip ve kaptanın sorumluluğunda; Çanakkale’de ihtiyaç nadir.',
+    after: 'Kapsam dışı (V3’te yalnızca buz haritası olarak döndü)',
+    why: 'Buzlanma koşullarında küçük drone uçamaz; buz kontrolü yasal olarak ekip ve kaptanın sorumluluğunda. V3’te drone sıvı sıkmaz, yalnızca kırağı koşulunda haritalar.',
   },
   {
     topic: 'ATC entegrasyonu',
@@ -52,7 +52,7 @@ const CHANGES = [
   },
 ]
 
-const REMOVED = ['Drone ile de-icing', 'Glikol geri kazanımı', 'Radar emici kaplama', 'Türbin tepesinde şarj', '50+ drone’luk sürü', 'Yılda 15–25 bin ton CO₂', '%80 daha az kuş çarpması']
+const REMOVED = ['Drone ile sıvı püskürtme', 'Glikol geri kazanımı', 'Radar emici kaplama', 'Türbin tepesinde şarj', '50+ drone’luk sürü', 'Yılda 15–25 bin ton CO₂', '%80 daha az kuş çarpması']
 
 export function Evolution() {
   const [airport, setAirport] = useState<'saw' | 'ckz'>('saw')
@@ -117,8 +117,8 @@ export function Evolution() {
       </div>
 
       <div className="evo__changes">
-        <h3>Başvurudan finale değişenler</h3>
-        <div className="evo__table" role="table" aria-label="Başvuru ve final sürümü arasındaki farklar">
+        <h3>Başvurudan final raporuna (v2) değişenler</h3>
+        <div className="evo__table" role="table" aria-label="Başvuru ve final raporu arasındaki farklar">
           <div className="evo__row evo__row--head" role="row">
             <span role="columnheader">Konu</span>
             <span role="columnheader">Başvuruda</span>

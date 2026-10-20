@@ -1,24 +1,25 @@
 import { useEffect, useRef } from 'react'
 import { createEngine, getEngine } from './engine'
 import { useSim } from './store'
+import type { Station } from '../app/pages'
 import './sim.css'
 
 /*
-  Sabit, tam ekran 3D tuval. Sayfanın arkasında durur:
-  hero görünürken sinematik modda, operasyon merkezi açıkken etkileşimli modda çalışır,
-  aksi halde durur (pil ve işlemci tasarrufu).
+  Sabit, tam ekran 3D tuval. Her sayfanın arkasında canlı durur:
+  sayfalarda sinematik modda (kamera sayfanın istasyonuna uçar), operasyon merkezi açıkken etkileşimli modda.
+  Sekme gizliyken tarayıcı çizimi kendiliğinden durdurur.
 */
-export function SimHost() {
+export function SimHost({ station }: { station: Station }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const opsOpen = useSim((s) => s.opsOpen)
   const quality = useSim((s) => s.quality)
-  const heroVisible = useRef(true)
+  const stationRef = useRef(station)
+  stationRef.current = station
 
   useEffect(() => {
     const canvas = ref.current
     if (!canvas) return
     let cancelled = false
-    let io: IntersectionObserver | null = null
     const start = async () => {
       // Dokulardaki yazılar (pist numaraları, tabelalar) için yazı tipinin yüklenmesini bekle
       try {
@@ -35,34 +36,30 @@ export function SimHost() {
         document.documentElement.classList.add('no-webgl')
         return
       }
-      const hero = document.getElementById('top')
-      io = new IntersectionObserver(([e]) => {
-        heroVisible.current = e.isIntersecting
-        engine.setActive(useSim.getState().opsOpen || heroVisible.current)
-      })
-      if (hero) io.observe(hero)
+      engine.setStation(stationRef.current)
+      engine.setMode(useSim.getState().opsOpen ? 'ops' : 'hero')
       engine.setActive(true)
     }
     start()
     return () => {
       cancelled = true
-      io?.disconnect()
     }
   }, [])
 
   useEffect(() => {
-    const e = getEngine()
-    if (!e) return
-    e.setMode(opsOpen ? 'ops' : 'hero')
-    e.setActive(opsOpen || heroVisible.current)
+    getEngine()?.setMode(opsOpen ? 'ops' : 'hero')
   }, [opsOpen])
+
+  useEffect(() => {
+    getEngine()?.setStation(station)
+  }, [station])
 
   useEffect(() => {
     getEngine()?.applyQuality(quality)
   }, [quality])
 
   return (
-    <div className={`sim-host ${opsOpen ? 'sim-host--ops' : ''}`} aria-hidden={!opsOpen}>
+    <div className={`sim-host ${opsOpen ? 'sim-host--ops' : ''} ${station === 'hero' ? '' : 'sim-host--page'}`} aria-hidden={!opsOpen}>
       <canvas ref={ref} className="sim-canvas" />
     </div>
   )

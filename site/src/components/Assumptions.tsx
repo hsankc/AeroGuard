@@ -23,6 +23,7 @@ const GROUPS: { title: string; ids: FactId[] }[] = [
   { title: 'Sürdürülebilirlik', ids: ['co2', 'co2Fleet'] },
   { title: 'Maliyet', ids: ['capex', 'opex', 'nextAirport', 'daas'] },
   { title: 'Yapay zekâ ve pilot hedefleri', ids: ['fodA', 'kpiSensitivity', 'kpiFalseAlarm', 'kpiScanTime', 'kpiReport', 'kpiCompletion', 'kpiEnergy'] },
+  { title: 'Kovan (V3, ön tahmin)', ids: ['hiveMini', 'hiveCkz', 'hiveWinter', 'hiveYear', 'workerPayload', 'pickupLimit', 'sentinelKpi', 'gnssRisk', 'iceTrl'] },
   { title: 'Yol haritası', ids: ['roadmap'] },
 ]
 
@@ -56,7 +57,7 @@ export function Assumptions() {
         <header className="asm__head">
           <div>
             <h2 id="asm-h">Varsayımlar ve kaynaklar</h2>
-            <p>Sitedeki her rakam Genişletilmiş Proje Raporu’ndan (Ekim 2026) alınmıştır. Hepsi ön tasarım tahminidir; doğrulama pilot uygulamaya bırakılmıştır.</p>
+            <p>v2 rakamları Genişletilmiş Proje Raporu’ndan (Ekim 2026), kovan (V3) rakamları V3 planından alınmıştır. Hepsi ön tasarım tahminidir; doğrulama pilot uygulamaya bırakılmıştır.</p>
           </div>
           <button ref={closeBtn} type="button" className="asm__close" onClick={close}>
             Kapat

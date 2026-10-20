@@ -1,48 +1,70 @@
 /*
-  AERO-GUARD tasarım token'ları
-  Görsel dil: havalimanı hareket alanı işaretleri (ICAO tabelaları, pist boyası)
-  + sunum/rapordaki görev renkleri. Sarı/siyah yalnızca yön bulma için,
-  kırmızı "bekleme" tabelası yalnızca kule onayı ve emniyet anları için.
+  AERO-GUARD V3 tasarım token'ları: "Canlı kovan, cam katmanlar"
+  Site her zaman koyu: 3D havalimanı arkada canlı, içerik onun üzerinde duran cam panellerde.
+  Bal amberi marka vurgusu; kast renkleri kimlik taşır, kırmızı yalnızca emniyet ve acil durum için.
 */
 :root {
+  color-scheme: dark;
+
   /* Temel */
-  --navy: #0f1e33;          /* kule / karar, operasyon zemini */
+  --night: #07101d; /* sahnenin arkasındaki zemin */
+  --navy: #0f1e33;
   --navy-2: #152740;
   --navy-3: #1e3554;
   --navy-line: #2c4569;
-  --concrete: #eceeea;      /* okuma zemini: beton */
-  --concrete-2: #e0e4de;
-  --concrete-line: #c9cfc6;
-  --paint: #f7f8f4;         /* pist boyası beyazı */
+  --paint: #f7f8f4;
   --asphalt: #3a424c;
+  --concrete-2: #d9ddd6;
 
-  /* Havalimanı tabelaları */
+  /* Marka: bal amberi (kovan) */
+  --honey: #f6b93b;
+  --honey-hi: #ffd27a;
+  --honey-deep: #c8871a;
+
+  /* Havalimanı işaretleri (kule onayı ve emniyet anlarında) */
   --sign-yellow: #ffc72c;
   --sign-black: #1d1d1b;
-  --hold-red: #c8102e;
+  --hold-red: #e0384f;
 
-  /* Görev renkleri (sunumla aynı) */
-  --energy: #3e9b37;
+  /* Görev renkleri (sunumla aynı aile; koyu zemin için açık tonlar) */
+  --energy: #4cb043;
   --energy-hi: #72c766;
-  --station: #1478c8;
+  --station: #3a8cd2;
   --station-hi: #5aaaf0;
   --fence: #e3a21a;
-  --health: #7b4fb8;
+  --health: #8f6bcb;
   --health-hi: #a987e0;
-  --emergency: #d0342c;
+  --emergency: #e0384f;
 
-  /* Anlamsal (açık zemin) */
-  --bg: var(--concrete);
-  --bg-raised: #f6f7f4;
-  --ink: var(--navy);
-  --ink-2: #3d4b5f;
-  --ink-3: #5d6a7c;
-  --line: var(--concrete-line);
-  --focus: var(--station);
+  /* Kast renkleri (V3-3'te renk körlüğü testinden geçirilecek; kimliği her zaman etiket taşır) */
+  --caste-scout: #5aaaf0; /* kâşif */
+  --caste-guard: #f08a4b; /* bekçi */
+  --caste-worker: #72c766; /* işçi */
+  --caste-nurse: #a987e0; /* bakıcı */
+  --caste-sentinel: #e8eef6; /* nöbetçi */
 
-  /* Operasyon (koyu zemin) */
+  /* Anlamsal */
+  --bg: #0b1626; /* düz koyu yüzey (küçük kullanımlar) */
+  --bg-raised: rgba(22, 38, 62, 0.62);
+  --ink: #edf2f8;
+  --ink-2: #b9c7d8;
+  --ink-3: #8397b0;
+  --line: rgba(205, 222, 245, 0.14);
+  --line-strong: rgba(205, 222, 245, 0.26);
+  --focus: var(--honey);
+
+  /* Cam */
+  --glass: rgba(14, 26, 45, 0.56);
+  --glass-strong: rgba(12, 22, 38, 0.78);
+  --glass-soft: rgba(22, 38, 62, 0.42);
+  --glass-border: rgba(214, 228, 248, 0.14);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(18px) saturate(140%);
+  --glass-shadow: 0 18px 50px rgba(2, 8, 18, 0.45);
+
+  /* Operasyon */
   --ops-bg: var(--navy);
-  --ops-panel: rgba(15, 30, 51, 0.86);
+  --ops-panel: rgba(12, 24, 42, 0.8);
   --ops-ink: #e8eef6;
   --ops-ink-2: #a9bad0;
   --ops-ink-3: #7a8ea9;
@@ -53,7 +75,6 @@
   --font-ui: 'Barlow Semi Condensed', 'Barlow', sans-serif;
   --font-body: 'Barlow', system-ui, sans-serif;
 
-  /* Ölçek (klasik tipografik ölçek) */
   --fs-12: 0.75rem;
   --fs-14: 0.875rem;
   --fs-16: 1rem;
@@ -65,34 +86,20 @@
   --fs-60: 3.75rem;
   --fs-72: 4.5rem;
 
-  /* Aralık */
-  --gutter: clamp(16px, 4vw, 56px);
-  --section-y: clamp(72px, 11vw, 152px);
+  /* Aralık ve biçim */
+  --gutter: clamp(16px, 4vw, 48px);
   --measure: 64ch;
-
-  --radius-s: 3px;
-  --radius-m: 6px;
+  --radius-s: 6px;
+  --radius-m: 12px;
+  --radius-l: 20px;
+  --nav-h: 68px;
 
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #0c1828;
-    --bg-raised: #12233a;
-    --ink: #e8eef6;
-    --ink-2: #b9c7d8;
-    --ink-3: #8b9cb3;
-    --line: #26405f;
-    --focus: var(--station-hi);
-  }
-}
-:root[data-theme='dark'] {
-  --bg: #0c1828;
-  --bg-raised: #12233a;
-  --ink: #e8eef6;
-  --ink-2: #b9c7d8;
-  --ink-3: #8b9cb3;
-  --line: #26405f;
-  --focus: var(--station-hi);
+/* Düşük grafik kalitesinde bulanıklık kapanır, cam opaklaşır */
+:root[data-quality='low'] {
+  --glass: rgba(12, 22, 38, 0.92);
+  --glass-soft: rgba(18, 32, 54, 0.9);
+  --glass-blur: none;
 }

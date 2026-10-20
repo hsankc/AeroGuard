@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getEngine } from '../../sim/engine'
 import { useSim } from '../../sim/store'
+import { href } from '../../app/router'
 
 /*
   Sistem mimarisi (rapordaki Şekil 1): enerji adası → kovan istasyonları → yazılım ve karar → çıktılar.
@@ -146,7 +147,7 @@ export function Architecture() {
             </button>
           )}
           {node.planner && (
-            <a className="pbtn" href="#planner">
+            <a className="pbtn" href={href('planlayici')}>
               Planlayıcıyı dene
             </a>
           )}

@@ -7,12 +7,12 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
-  scroll-padding-top: 72px;
+  scroll-padding-top: calc(var(--nav-h) + 16px);
 }
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--night);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: var(--fs-18);
@@ -79,63 +79,7 @@ p {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* ---------- Bölüm düzeni ---------- */
-
-.section {
-  position: relative;
-  padding: var(--section-y) var(--gutter);
-  background: var(--bg);
-  border-top: 1px solid var(--line);
-}
-
-.section__inner {
-  max-width: 1240px;
-  margin: 0 auto;
-}
-
-.section__head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 20px;
-  max-width: 880px;
-  margin-bottom: clamp(40px, 6vw, 72px);
-}
-
-.section__title {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: clamp(2.4rem, 5vw, var(--fs-72));
-  line-height: 1;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-}
-
-.section__lead {
-  max-width: var(--measure);
-  font-size: var(--fs-21);
-  line-height: 1.5;
-  color: var(--ink-2);
-  text-wrap: pretty;
-}
-
-.prose {
-  max-width: var(--measure);
-  color: var(--ink-2);
-}
-
-.prose p + p {
-  margin-top: 1em;
-}
-
-.placeholder-note {
-  max-width: var(--measure);
-  padding: 18px 20px;
-  border: 1px dashed var(--line);
-  border-radius: var(--radius-m);
-  color: var(--ink-3);
-  font-family: var(--font-ui);
-  font-size: var(--fs-16);
-}
+/* Sayfa düzeni, cam paneller ve bento ızgara: styles/layout.css */
 
 /* ---------- Havalimanı tabelaları ---------- */
 
@@ -204,14 +148,14 @@ p {
 }
 
 .btn--primary {
-  border-color: var(--sign-yellow);
-  background: var(--sign-yellow);
-  color: var(--sign-black);
+  border-color: var(--honey);
+  background: var(--honey);
+  color: #1a1306;
 }
 
 .btn--primary:hover {
-  background: #ffd659;
-  border-color: #ffd659;
+  background: var(--honey-hi);
+  border-color: var(--honey-hi);
 }
 
 .btn--ghost-light {

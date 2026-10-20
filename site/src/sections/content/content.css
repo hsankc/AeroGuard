@@ -327,117 +327,6 @@
   align-items: start;
 }
 
-.site__map {
-  margin: 0;
-}
-
-.site-map {
-  width: 100%;
-  height: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-m);
-}
-
-.site-map__land {
-  fill: #e3e4d5;
-}
-
-.site-map__water {
-  fill: #9cc0d6;
-}
-
-.site-map__water-label {
-  fill: #2f5f7a;
-  font-family: var(--font-ui);
-  font-style: italic;
-  font-size: 15px;
-}
-
-.site-map__city {
-  fill: #b6a891;
-}
-
-.site-map__airport {
-  fill: #cfd8bf;
-  stroke: #9aa48a;
-  stroke-width: 1;
-}
-
-.site-map__rwy {
-  stroke: #3a424c;
-  stroke-width: 6;
-  stroke-linecap: butt;
-}
-
-.site-map__st {
-  stroke: #fff;
-  stroke-width: 2;
-}
-
-.site-map__st--a {
-  fill: var(--energy);
-}
-
-.site-map__st--b {
-  fill: var(--station);
-}
-
-.site-map__rwyno {
-  fill: #1d1d1b;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 18px;
-}
-
-.site-map__label {
-  fill: #1d2a3d;
-  font-family: var(--font-ui);
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.site-map__label--muted {
-  fill: #5a6576;
-  font-weight: 500;
-}
-
-.site-map__north {
-  fill: #1d2a3d;
-}
-
-.site-map__note {
-  fill: #5a6576;
-  font-family: var(--font-ui);
-  font-size: 12px;
-}
-
-.site__map figcaption {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  margin-top: 10px;
-  color: var(--ink-3);
-  font-family: var(--font-ui);
-  font-size: var(--fs-14);
-}
-
-.site__dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.site__dot--a {
-  background: var(--energy);
-}
-
-.site__dot--b {
-  margin-left: 8px;
-  background: var(--station);
-}
-
 .site__data-title {
   display: flex;
   align-items: center;
@@ -477,10 +366,16 @@
   font-size: var(--fs-16);
 }
 
+.site__side {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+}
+
 .site__why {
   display: grid;
   gap: 10px;
-  margin: 24px 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
   color: var(--ink-2);
