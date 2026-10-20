@@ -178,6 +178,7 @@ export function buildAirfield(): Airfield {
     new THREE.MeshStandardMaterial({ map: concrete, roughness: 0.92, metalness: 0 }),
   )
   runway.receiveShadow = true
+  runway.userData.pick = 'runway'
   group.add(runway)
 
   const shoulderTex = asphaltTexture(5, 82)
@@ -309,14 +310,14 @@ export function buildAirfield(): Airfield {
     group.add(m)
     return m
   }
+  // keşif modunda seçilebilen nesneler userData.pick ile işaretlenir
+  const pick = (id: string, ...ms: THREE.Object3D[]) => ms.forEach((m) => (m.userData.pick = id))
   const tm = LAYOUT.terminal
-  addBox(130, 11, 34, tm.x, 5.5, tm.z, wallMat)
-  addBox(136, 1.2, 40, tm.x, 11.6, tm.z, roofMat)
-  addBox(118, 6, 0.4, tm.x, 5, tm.z + 17.1, glassMat)
+  pick('terminal', addBox(130, 11, 34, tm.x, 5.5, tm.z, wallMat), addBox(136, 1.2, 40, tm.x, 11.6, tm.z, roofMat), addBox(118, 6, 0.4, tm.x, 5, tm.z + 17.1, glassMat))
   // İtfaiye (ARFF) binası, kırmızı kapılarla
-  addBox(36, 8, 18, -120, 4, -205, wallMat)
+  pick('arff', addBox(36, 8, 18, -120, 4, -205, wallMat))
   const doorMat = new THREE.MeshStandardMaterial({ color: '#b3261e', roughness: 0.6 })
-  for (let i = 0; i < 3; i++) addBox(8, 5.5, 0.3, -132 + i * 12, 2.75, -195.9, doorMat)
+  for (let i = 0; i < 3; i++) pick('arff', addBox(8, 5.5, 0.3, -132 + i * 12, 2.75, -195.9, doorMat))
   // Hangar
   const hangarRoof = new THREE.Mesh(new THREE.CylinderGeometry(24, 24, 50, 24, 1, false, 0, Math.PI), roofMat)
   hangarRoof.rotation.z = Math.PI / 2
@@ -344,6 +345,7 @@ export function buildAirfield(): Airfield {
   const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 6), roofMat)
   mast.position.set(tw.x, 34.4, tw.z)
   group.add(mast)
+  pick('tower', shaft, cab, cabBase, cabRoof, mast)
   // Yol
   group.add(new THREE.Mesh(flatRect(tm.x - 20, -800, 14, 900, 0.04), taxiMat))
 
@@ -405,6 +407,7 @@ export function buildAirfield(): Airfield {
     g.add(pivot)
     g.position.set(w.x, 0, w.z)
     g.userData.pivot = pivot
+    g.userData.pick = 'windsock'
     group.add(g)
     socks.push(g)
   }

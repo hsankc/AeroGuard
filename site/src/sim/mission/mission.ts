@@ -3,7 +3,7 @@ import { PARAMS } from '../../data/facts'
 import type { TaskType } from '../../planner/plan'
 import type { DroneMode, FodClass, LogKind, Phase } from '../store'
 import type { FodField, FodItem } from '../world/fod'
-import { footprint, laneSpacing, LAYOUT, RWY } from '../world/layout'
+import { footprint, GATE_Z, insideGeofence, laneSpacing, LAYOUT, RWY } from '../world/layout'
 import type { Station } from '../world/station'
 
 /*
@@ -157,13 +157,21 @@ export class Mission {
       Math.random() < 0.6 ? { x: (Math.random() * 2 - 1) * (RWY.half - 300), z: (Math.random() * 2 - 1) * 12, detected: false } : null
   }
 
+  /** Petek hizasında şerit kapısı: drone şeritten (sanal sınır koridoru) buradan çıkar ve girer. */
+  private gate(d: DroneSim, alt: number) {
+    return new THREE.Vector3(d.station.padTop.x, alt, Math.sign(d.station.padTop.z) * GATE_Z)
+  }
+
   private bracket(d: DroneSim, body: Wp[]): Wp[] {
     const dock = d.station.padTop.clone()
-    const above = dock.clone().setY(body[0]?.p.y ?? ALT)
+    const alt = body[0]?.p.y ?? ALT
+    const above = dock.clone().setY(alt)
     return [
       { p: dock.clone(), speed: 0, mode: 'lid', hold: LID_TIME, lid: 'open' },
       { p: above, speed: CLIMB_SPEED, mode: 'takeoff' },
+      { p: this.gate(d, alt), speed: TRANSIT_SPEED, mode: 'transit' },
       ...body,
+      { p: this.gate(d, alt), speed: TRANSIT_SPEED, mode: 'transit' },
       { p: above.clone(), speed: TRANSIT_SPEED, mode: 'transit' },
       { p: dock.clone(), speed: LAND_SPEED, mode: 'landing' },
       { p: dock.clone(), speed: 0, mode: 'lid', hold: LID_TIME, lid: 'close' },
@@ -281,6 +289,7 @@ export class Mission {
     const above = dock.clone().setY(ALT)
     return [
       { p: d.pos.clone().setY(Math.max(d.pos.y, ALT)), speed: CLIMB_SPEED, mode: 'rth' },
+      { p: this.gate(d, ALT), speed: TRANSIT_SPEED, mode: 'rth' },
       { p: above, speed: TRANSIT_SPEED, mode: 'rth' },
       { p: dock, speed: LAND_SPEED, mode: 'landing' },
       { p: dock.clone(), speed: 0, mode: 'lid', hold: LID_TIME, lid: 'close' },
@@ -361,8 +370,7 @@ export class Mission {
 
     if (d.drift) {
       d.pos.addScaledVector(d.drift, dt)
-      const G = LAYOUT.geofence
-      if (d.pos.z > G.z1 || d.pos.z < G.z0 || d.pos.x < G.x0 || d.pos.x > G.x1) {
+      if (!insideGeofence(d.pos.x, d.pos.z)) {
         d.drift = null
         this.ev.breach(true)
         this.ev.log('alert', `Drone ${d.id}: sanal sınır aşıldı, otomatik eve dönüş`)

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { LAYOUT } from './layout'
+import { geofenceOutline, LAYOUT } from './layout'
 
 /** Pist dışı acil iniş noktaları: çimde kırmızı X işaretleri. */
 export function buildEmergencyMarks() {
@@ -35,10 +35,10 @@ export class Geofence {
 
   constructor() {
     const G = LAYOUT.geofence
-    const w = G.x1 - G.x0
-    const d = G.z1 - G.z0
-    const box = new THREE.BoxGeometry(w, G.ceiling, d)
-    box.translate((G.x0 + G.x1) / 2, G.ceiling / 2, (G.z0 + G.z1) / 2)
+    // taban çokgeni (x, z) şekil düzleminde (x, −z) olarak çizilir, yukarı doğru tavana kadar çekilir
+    const shape = new THREE.Shape(geofenceOutline().map(([x, z]) => new THREE.Vector2(x, -z)))
+    const box = new THREE.ExtrudeGeometry(shape, { depth: G.ceiling, bevelEnabled: false })
+    box.rotateX(-Math.PI / 2)
     this.faces = new THREE.Mesh(
       box,
       new THREE.MeshBasicMaterial({ color: '#ffc72c', transparent: true, opacity: 0.035, depthWrite: false, side: THREE.DoubleSide }),

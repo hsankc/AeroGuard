@@ -248,7 +248,7 @@ export const FACTS = {
   geofence: {
     value: '30 m',
     label: 'Sanal sınır tavanı',
-    note: 'Drone pist şeridi içinde ve 30 m’nin altında kalır; aşım otomatik eve dönüşü tetikler.',
+    note: 'Drone pist şeridi ve petek koridorları içinde, 30 m’nin altında kalır; aşım otomatik eve dönüşü tetikler.',
   },
 
   /* Enerji */
