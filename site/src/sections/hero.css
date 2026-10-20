@@ -1,0 +1,114 @@
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 100svh;
+  padding: 96px var(--gutter) 28px;
+  color: var(--paint);
+  /* 3D sahne arkada sabit duran tuvalde çizilir; bölüm şeffaftır */
+  background: transparent;
+  isolation: isolate;
+}
+
+.hero__shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(to top, rgba(8, 17, 31, 0.86) 0%, rgba(8, 17, 31, 0.35) 38%, rgba(8, 17, 31, 0) 60%),
+    linear-gradient(to right, rgba(8, 17, 31, 0.55) 0%, rgba(8, 17, 31, 0) 55%);
+  pointer-events: none;
+}
+
+.hero__content {
+  align-self: end;
+  max-width: 980px;
+  padding-bottom: clamp(32px, 6vh, 64px);
+}
+
+.hero__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(3rem, 8.2vw, 7.5rem);
+  line-height: 0.94;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  text-shadow: 0 2px 24px rgba(5, 12, 22, 0.45);
+}
+
+.hero__sub {
+  max-width: 56ch;
+  margin-top: 24px;
+  font-size: var(--fs-21);
+  line-height: 1.5;
+  color: #dbe4ef;
+  text-wrap: pretty;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.hero__readout {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid rgba(247, 248, 244, 0.28);
+}
+
+.hero__readout > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 16px 4px 0;
+}
+
+.hero__readout > div + div {
+  padding-left: 16px;
+  border-left: 1px solid rgba(247, 248, 244, 0.16);
+}
+
+.hero__readout dt {
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+  line-height: 1.3;
+  color: #b9c7d8;
+}
+
+.hero__readout dd {
+  order: -1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-36);
+  line-height: 1.05;
+}
+
+.hero__sim-note {
+  position: absolute;
+  right: var(--gutter);
+  top: 80px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+  color: rgba(232, 238, 246, 0.7);
+}
+
+@media (max-width: 900px) {
+  .hero__shade {
+    background: linear-gradient(to top, rgba(8, 17, 31, 0.94) 0%, rgba(8, 17, 31, 0.78) 55%, rgba(8, 17, 31, 0.15) 80%, rgba(8, 17, 31, 0) 100%);
+  }
+  .hero__readout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hero__readout > div,
+  .hero__readout > div + div {
+    padding: 12px 12px 4px 0;
+    border-left: 0;
+  }
+  .hero__readout > div:last-child {
+    grid-column: 1 / -1;
+  }
+}

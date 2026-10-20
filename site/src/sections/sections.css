@@ -1,0 +1,119 @@
+.section__sign {
+  margin-right: 0.32em;
+  font-size: 0.62em;
+  vertical-align: 0.18em;
+}
+
+.section--dark {
+  --bg: var(--navy);
+  --ink: var(--ops-ink);
+  --ink-2: var(--ops-ink-2);
+  --ink-3: var(--ops-ink-3);
+  --line: var(--navy-line);
+  --focus: var(--station-hi);
+  color: var(--ink);
+}
+
+/* ---------- E: Operasyon merkezi tanıtımı ---------- */
+
+.ops-teaser {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 96px);
+  align-items: start;
+}
+
+.ops-teaser__steps {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ops-teaser__steps li {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 16px;
+  align-items: baseline;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+}
+
+.ops-teaser__n {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-36);
+  line-height: 1;
+  color: var(--sign-yellow);
+}
+
+.ops-teaser__cta {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.ops-teaser__cta p {
+  color: var(--ink-3);
+  font-size: var(--fs-16);
+}
+
+/* ---------- S: Ekip ---------- */
+
+.team {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+}
+
+.team__logo {
+  width: clamp(160px, 22vw, 260px);
+  height: auto;
+}
+
+.team__names {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 6px 40px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-36);
+  line-height: 1.15;
+}
+
+.team__uni {
+  color: var(--ink-2);
+}
+
+.team__note {
+  max-width: var(--measure);
+  margin-top: 20px;
+  color: var(--ink-3);
+  font-size: var(--fs-16);
+}
+
+.team__event {
+  margin-top: 12px;
+  color: var(--ink-3);
+  font-size: var(--fs-14);
+}
+
+@media (max-width: 860px) {
+  .ops-teaser,
+  .team {
+    grid-template-columns: 1fr;
+  }
+  .team__names {
+    grid-template-columns: 1fr;
+    font-size: var(--fs-24);
+  }
+}

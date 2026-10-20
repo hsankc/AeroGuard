@@ -1,0 +1,186 @@
+/* ---------- Q: Yol haritası ---------- */
+
+.road {
+  display: grid;
+  gap: 22px;
+}
+
+.road__chart {
+  position: relative;
+  overflow-x: auto;
+}
+
+.road__chart svg {
+  display: block;
+  width: 100%;
+  min-width: 760px;
+  height: auto;
+  font-family: var(--font-ui);
+}
+
+.road__phase--0 {
+  fill: color-mix(in srgb, var(--station) 10%, var(--bg-raised));
+}
+
+.road__phase--1 {
+  fill: color-mix(in srgb, var(--station) 18%, var(--bg-raised));
+}
+
+.road__phase--2 {
+  fill: color-mix(in srgb, var(--station) 26%, var(--bg-raised));
+}
+
+.road__phase--3 {
+  fill: color-mix(in srgb, var(--station) 34%, var(--bg-raised));
+}
+
+.road__phase-t {
+  fill: var(--ink);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.road__phase-s {
+  fill: var(--ink-2);
+  font-size: 13px;
+}
+
+.road__grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.road__tick {
+  fill: var(--ink-3);
+  font-size: 13px;
+}
+
+.road__label {
+  fill: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.road__bar {
+  fill: var(--c-bar);
+}
+
+.road__hit {
+  fill: transparent;
+}
+
+.road__hit:focus {
+  outline: none;
+}
+
+.road__hit:focus-visible {
+  stroke: var(--focus);
+  stroke-width: 2;
+}
+
+.road__ms {
+  fill: var(--c-bar-alt);
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.road__ms-t {
+  fill: var(--ink);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.road__first,
+.road__team {
+  max-width: var(--measure);
+  color: var(--ink-2);
+}
+
+.road__first b {
+  color: var(--ink);
+}
+
+.road__team {
+  color: var(--ink-3);
+  font-size: var(--fs-16);
+}
+
+.road__table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+}
+
+.road__table th,
+.road__table td {
+  padding: 8px 10px 8px 0;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.road__table thead th {
+  border-top: 0;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+/* ---------- R: Jüri soruları ---------- */
+
+.faq {
+  display: grid;
+  max-width: 900px;
+  border-top: 1px solid var(--line);
+}
+
+.faq__item {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq__item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 0;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--fs-21);
+}
+
+.faq__item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq__item summary::after {
+  content: '+';
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.faq__item[open] summary::after {
+  content: '−';
+}
+
+.faq__a {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 0 0 20px;
+}
+
+.faq__a p {
+  max-width: var(--measure);
+  color: var(--ink-2);
+}

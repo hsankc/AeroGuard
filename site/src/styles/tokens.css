@@ -1,0 +1,98 @@
+/*
+  AERO-GUARD tasarım token'ları
+  Görsel dil: havalimanı hareket alanı işaretleri (ICAO tabelaları, pist boyası)
+  + sunum/rapordaki görev renkleri. Sarı/siyah yalnızca yön bulma için,
+  kırmızı "bekleme" tabelası yalnızca kule onayı ve emniyet anları için.
+*/
+:root {
+  /* Temel */
+  --navy: #0f1e33;          /* kule / karar, operasyon zemini */
+  --navy-2: #152740;
+  --navy-3: #1e3554;
+  --navy-line: #2c4569;
+  --concrete: #eceeea;      /* okuma zemini: beton */
+  --concrete-2: #e0e4de;
+  --concrete-line: #c9cfc6;
+  --paint: #f7f8f4;         /* pist boyası beyazı */
+  --asphalt: #3a424c;
+
+  /* Havalimanı tabelaları */
+  --sign-yellow: #ffc72c;
+  --sign-black: #1d1d1b;
+  --hold-red: #c8102e;
+
+  /* Görev renkleri (sunumla aynı) */
+  --energy: #3e9b37;
+  --energy-hi: #72c766;
+  --station: #1478c8;
+  --station-hi: #5aaaf0;
+  --fence: #e3a21a;
+  --health: #7b4fb8;
+  --health-hi: #a987e0;
+  --emergency: #d0342c;
+
+  /* Anlamsal (açık zemin) */
+  --bg: var(--concrete);
+  --bg-raised: #f6f7f4;
+  --ink: var(--navy);
+  --ink-2: #3d4b5f;
+  --ink-3: #5d6a7c;
+  --line: var(--concrete-line);
+  --focus: var(--station);
+
+  /* Operasyon (koyu zemin) */
+  --ops-bg: var(--navy);
+  --ops-panel: rgba(15, 30, 51, 0.86);
+  --ops-ink: #e8eef6;
+  --ops-ink-2: #a9bad0;
+  --ops-ink-3: #7a8ea9;
+  --ops-line: var(--navy-line);
+
+  /* Tipografi */
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-ui: 'Barlow Semi Condensed', 'Barlow', sans-serif;
+  --font-body: 'Barlow', system-ui, sans-serif;
+
+  /* Ölçek (klasik tipografik ölçek) */
+  --fs-12: 0.75rem;
+  --fs-14: 0.875rem;
+  --fs-16: 1rem;
+  --fs-18: 1.125rem;
+  --fs-21: 1.3125rem;
+  --fs-24: 1.5rem;
+  --fs-36: 2.25rem;
+  --fs-48: 3rem;
+  --fs-60: 3.75rem;
+  --fs-72: 4.5rem;
+
+  /* Aralık */
+  --gutter: clamp(16px, 4vw, 56px);
+  --section-y: clamp(72px, 11vw, 152px);
+  --measure: 64ch;
+
+  --radius-s: 3px;
+  --radius-m: 6px;
+
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0c1828;
+    --bg-raised: #12233a;
+    --ink: #e8eef6;
+    --ink-2: #b9c7d8;
+    --ink-3: #8b9cb3;
+    --line: #26405f;
+    --focus: var(--station-hi);
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #0c1828;
+  --bg-raised: #12233a;
+  --ink: #e8eef6;
+  --ink-2: #b9c7d8;
+  --ink-3: #8b9cb3;
+  --line: #26405f;
+  --focus: var(--station-hi);
+}

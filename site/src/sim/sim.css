@@ -1,0 +1,92 @@
+.sim-host {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: #0f1e33;
+}
+
+.sim-canvas {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.sim-host--ops {
+  z-index: 90;
+}
+
+main {
+  position: relative;
+  z-index: 1;
+}
+
+.no-webgl .sim-host {
+  background: radial-gradient(120% 90% at 70% 30%, #2b4a6e 0%, #0f1e33 70%);
+}
+
+/* 3D etiketleri */
+.sim-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sim-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: rgba(15, 30, 51, 0.82);
+  color: #e8eef6;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.sim-label--d1 {
+  background: var(--energy);
+  color: #fff;
+}
+
+.sim-label--d2 {
+  background: var(--station);
+  color: #fff;
+}
+
+.sim-label--place {
+  background: rgba(15, 30, 51, 0.7);
+  font-weight: 500;
+}
+
+.sim-label--rwy {
+  background: var(--sign-black);
+  color: var(--sign-yellow);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.sim-label--hazard {
+  background: var(--hold-red);
+  color: #fff;
+}
+
+.sim-label--det {
+  background: #ffb020;
+  color: #1d1d1b;
+}
+
+.sim-label--det[data-status='confirmed'] {
+  background: var(--hold-red);
+  color: #fff;
+}
+
+.sim-label--det[data-status='rejected'] {
+  background: #8a96a5;
+  color: #fff;
+  text-decoration: line-through;
+}

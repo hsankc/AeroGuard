@@ -1,0 +1,1142 @@
+/* ---------- Operasyon merkezi: 3D tuvalin üzerinde duran konsol ---------- */
+
+.ops {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: 318px minmax(0, 1fr) 372px;
+  grid-template-rows: 56px minmax(0, 1fr);
+  gap: 0 12px;
+  padding: 0 12px 12px;
+  color: var(--ops-ink);
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+  line-height: 1.4;
+  pointer-events: none; /* aradaki boşluk tuvale (kamera, nesne bırakma) geçer */
+}
+
+.ops button,
+.ops select,
+.ops input {
+  pointer-events: auto;
+}
+
+.ops-top {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  margin: 0 -12px;
+  padding: 0 16px;
+  background: rgba(15, 30, 51, 0.92);
+  border-bottom: 1px solid var(--ops-line);
+  pointer-events: auto;
+}
+
+.ops-top__id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ops-top__id .sign-loc {
+  font-size: var(--fs-18);
+}
+
+.ops-top__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: var(--fs-16);
+}
+
+.ops-top__clock {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-36);
+  letter-spacing: 0.01em;
+}
+
+.ops-top__clock span {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: var(--fs-14);
+  color: var(--ops-ink-3);
+}
+
+.ops-top__tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ops-close {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--ops-line);
+  border-radius: var(--radius-s);
+  background: transparent;
+  font-weight: 600;
+}
+
+.ops-close:hover {
+  border-color: var(--ops-ink-2);
+}
+
+.ops-select select {
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--ops-line);
+  border-radius: var(--radius-s);
+  background: var(--navy-2);
+}
+
+/* Segment düğmeleri */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--ops-line);
+  border-radius: var(--radius-s);
+  overflow: hidden;
+}
+
+.seg button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ops-ink-2);
+  font-weight: 600;
+  font-size: var(--fs-14);
+}
+
+.seg button + button {
+  border-left: 1px solid var(--ops-line);
+}
+
+.seg button:hover {
+  background: var(--navy-3);
+  color: var(--ops-ink);
+}
+
+.seg button[aria-pressed='true'] {
+  background: var(--sign-yellow);
+  color: var(--sign-black);
+}
+
+.seg--wide {
+  display: flex;
+}
+
+.seg--wide button {
+  flex: 1;
+  padding: 0 6px;
+}
+
+/* Yan paneller: her kart kendi zeminini taşır, böylece kamera akışı alanı şeffaf kalır */
+.ops-left,
+.ops-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding-top: 12px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  pointer-events: auto;
+}
+
+.ops-left {
+  grid-column: 1;
+}
+
+.ops-right {
+  grid-column: 3;
+}
+
+.ops-card {
+  flex-shrink: 0;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--ops-line);
+  border-radius: var(--radius-m);
+  background: var(--ops-panel);
+  backdrop-filter: blur(6px);
+}
+
+.ops-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ops-card h2 {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--fs-16);
+  color: #fff;
+}
+
+.ops-muted {
+  color: var(--ops-ink-3);
+  font-size: var(--fs-12);
+  text-align: right;
+}
+
+.ops-hint,
+.ops-empty {
+  margin-top: 8px;
+  color: var(--ops-ink-3);
+  font-size: var(--fs-12);
+}
+
+.ops-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ops .btn {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--ops-line);
+  border-radius: var(--radius-s);
+  font-size: var(--fs-14);
+  color: var(--ops-ink);
+}
+
+.ops .btn:hover:not(:disabled) {
+  border-color: var(--ops-ink-2);
+  background: var(--navy-3);
+}
+
+.ops .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ops .btn--primary {
+  border-color: var(--sign-yellow);
+  background: var(--sign-yellow);
+  color: var(--sign-black);
+}
+
+.ops .btn--primary:hover:not(:disabled) {
+  background: #ffd659;
+  border-color: #ffd659;
+}
+
+.ops-btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.ops-btn.is-on {
+  border-color: var(--sign-yellow);
+  color: var(--sign-yellow);
+}
+
+.ops-btn--sm {
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  font-size: var(--fs-12) !important;
+}
+
+/* Görev kartı */
+.ops-phase {
+  margin-bottom: 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-21);
+  line-height: 1.15;
+  color: #fff;
+}
+
+.ops-phase--bad {
+  color: #ff8a80;
+}
+
+.ops-steps {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.ops-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ops-ink-3);
+}
+
+.ops-steps li span {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--ops-line);
+  border-radius: 50%;
+  font-size: 11px;
+}
+
+.ops-steps li[data-state='done'] {
+  color: var(--ops-ink-2);
+}
+
+.ops-steps li[data-state='done'] span {
+  border-color: var(--energy);
+  background: var(--energy);
+  color: #fff;
+}
+
+.ops-steps li[data-state='now'] {
+  color: #fff;
+  font-weight: 600;
+}
+
+.ops-steps li[data-state='now'] span {
+  border-color: var(--sign-yellow);
+  color: var(--sign-yellow);
+}
+
+.ops-steps li[data-state='bad'] {
+  color: #ff8a80;
+  font-weight: 600;
+}
+
+.ops-steps li[data-state='bad'] span {
+  border-color: var(--hold-red);
+  background: var(--hold-red);
+  color: #fff;
+}
+
+.ops-coverage {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: var(--ops-ink-2);
+}
+
+.ops-coverage__bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--navy-3);
+  overflow: hidden;
+}
+
+.ops-coverage__bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--energy), var(--station));
+  transition: width 0.2s linear;
+}
+
+.ops-main {
+  width: 100%;
+  justify-content: center;
+  min-height: 44px !important;
+  font-size: var(--fs-16) !important;
+}
+
+.ops-main-row {
+  display: flex;
+  gap: 6px;
+}
+
+.ops-main--hold {
+  border-color: var(--hold-red) !important;
+  background: var(--hold-red);
+  color: #fff !important;
+}
+
+.ops-main--hold:hover {
+  background: #a90d26 !important;
+}
+
+/* Kaydırıcılar */
+.ops-range {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ops-range span {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ops-ink-2);
+}
+
+.ops-range b {
+  color: #fff;
+  font-weight: 600;
+}
+
+.ops-range b.is-bad {
+  color: #ff8a80;
+}
+
+.ops-range em {
+  margin-left: auto;
+  font-style: normal;
+  font-size: var(--fs-12);
+  color: var(--ops-ink-3);
+}
+
+.ops-range input {
+  width: 100%;
+  accent-color: var(--sign-yellow);
+}
+
+/* Arıza laboratuvarı */
+.ops-faults {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ops-faults p {
+  margin-top: 4px;
+  color: var(--ops-ink-3);
+  font-size: var(--fs-12);
+}
+
+.ops-btn--fault {
+  width: 100%;
+  justify-content: flex-start !important;
+  border-color: rgba(200, 16, 46, 0.6) !important;
+}
+
+.ops-btn--fault:hover:not(:disabled) {
+  background: rgba(200, 16, 46, 0.18) !important;
+}
+
+/* Kamera akışı: iç alan şeffaf; 3D motor bu dikdörtgene drone kamerasını çizer */
+.ops-card--feed {
+  background: transparent;
+  backdrop-filter: none;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ops-card--feed .ops-card__head {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--ops-panel);
+}
+
+.pip {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  /* köşe çerçeveleri */
+  background:
+    linear-gradient(#fff, #fff) top 8px left 8px / 18px 2px no-repeat,
+    linear-gradient(#fff, #fff) top 8px left 8px / 2px 18px no-repeat,
+    linear-gradient(#fff, #fff) top 8px right 8px / 18px 2px no-repeat,
+    linear-gradient(#fff, #fff) top 8px right 8px / 2px 18px no-repeat,
+    linear-gradient(#fff, #fff) bottom 8px left 8px / 18px 2px no-repeat,
+    linear-gradient(#fff, #fff) bottom 8px left 8px / 2px 18px no-repeat,
+    linear-gradient(#fff, #fff) bottom 8px right 8px / 18px 2px no-repeat,
+    linear-gradient(#fff, #fff) bottom 8px right 8px / 2px 18px no-repeat;
+}
+
+.pip__hud {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  max-width: calc(100% - 28px);
+  font-weight: 600;
+  font-size: var(--fs-12);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.pip__idle {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(12, 25, 43, 0.92);
+  color: var(--ops-ink-2);
+  text-align: center;
+}
+
+.pip__tag {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  padding: 1px 6px;
+  border-radius: 2px;
+  background: rgba(15, 30, 51, 0.75);
+  font-size: 11px;
+  color: var(--ops-ink-2);
+}
+
+.pip-box {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 2px solid #ffb020;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.pip-box::after {
+  content: attr(data-label);
+  position: absolute;
+  left: -2px;
+  bottom: 100%;
+  padding: 0 4px;
+  background: #ffb020;
+  color: #1d1d1b;
+  font-weight: 700;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.pip-box[data-status='confirmed'] {
+  border-color: var(--hold-red);
+}
+
+.pip-box[data-status='confirmed']::after {
+  background: var(--hold-red);
+  color: #fff;
+}
+
+.pip-box[data-status='rejected'] {
+  border-color: #8a96a5;
+  border-style: dashed;
+}
+
+.pip-box[data-status='rejected']::after {
+  background: #8a96a5;
+  color: #fff;
+}
+
+/* Telemetri */
+.ops-tel {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-12);
+}
+
+.ops-tel th,
+.ops-tel td {
+  padding: 5px 4px;
+  border-top: 1px solid var(--ops-line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.ops-tel thead th {
+  border-top: 0;
+  color: var(--ops-ink-3);
+  font-weight: 500;
+}
+
+.ops-tel tbody th {
+  font-weight: 700;
+}
+
+.ops-tel tr[data-drone='1'] th {
+  color: var(--energy-hi);
+}
+
+.ops-tel tr[data-drone='2'] th {
+  color: var(--station-hi);
+}
+
+.ops-bat {
+  display: inline-block;
+  width: 26px;
+  height: 8px;
+  margin-right: 5px;
+  border: 1px solid var(--ops-ink-3);
+  border-radius: 2px;
+  vertical-align: -1px;
+  overflow: hidden;
+}
+
+.ops-bat span {
+  display: block;
+  height: 100%;
+  background: var(--energy-hi);
+}
+
+/* Tespitler */
+.ops-dets {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ops-dets li {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 10px;
+  padding-left: 8px;
+  border-left: 3px solid #ffb020;
+}
+
+.ops-dets li[data-status='confirmed'] {
+  border-left-color: var(--hold-red);
+}
+
+.ops-dets li[data-status='rejected'] {
+  border-left-color: #8a96a5;
+  opacity: 0.75;
+}
+
+.ops-dets img {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+.ops-dets__title {
+  font-weight: 700;
+  color: #fff;
+}
+
+.ops-dets__pos,
+.ops-dets__status {
+  color: var(--ops-ink-3);
+  font-size: var(--fs-12);
+}
+
+.ops-dets__status {
+  margin-top: 4px;
+  color: var(--ops-ink-2);
+}
+
+/* Olay günlüğü */
+.ops-card--log {
+  flex: 1 0 200px;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.ops-log {
+  flex: 1;
+  min-height: 0;
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-size: var(--fs-12);
+}
+
+.ops-log li {
+  display: grid;
+  grid-template-columns: 58px 42px 1fr;
+  gap: 6px;
+  padding: 4px 0;
+  border-top: 1px solid rgba(44, 69, 105, 0.5);
+  color: var(--ops-ink-2);
+}
+
+.ops-log time {
+  color: var(--ops-ink-3);
+}
+
+.ops-log__kind {
+  font-weight: 700;
+}
+
+.ops-log li[data-kind='ok'] .ops-log__kind {
+  color: var(--energy-hi);
+}
+
+.ops-log li[data-kind='warn'] .ops-log__kind {
+  color: #ffb020;
+}
+
+.ops-log li[data-kind='alert'] .ops-log__kind {
+  color: #ff6b5e;
+}
+
+.ops-log li[data-kind='alert'] {
+  color: #fff;
+}
+
+.ops-log li[data-kind='tower'] .ops-log__kind {
+  color: var(--sign-yellow);
+}
+
+/* ---------- Kule onay ekranı ---------- */
+
+.tower-backdrop,
+.report-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(6, 12, 22, 0.55);
+  pointer-events: auto;
+}
+
+.tower {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 22px 24px 20px;
+  border: 1px solid var(--ops-line);
+  border-radius: var(--radius-m);
+  background: #0c192b;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.tower__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.tower__sign {
+  font-size: var(--fs-36);
+}
+
+.tower__head h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-36);
+  line-height: 1;
+  color: #fff;
+}
+
+.tower__head p {
+  margin-top: 4px;
+  color: var(--ops-ink-2);
+}
+
+.tower__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.tower__facts div {
+  padding: 8px 10px;
+  border: 1px solid var(--ops-line);
+  border-radius: var(--radius-s);
+}
+
+.tower__facts dt {
+  color: var(--ops-ink-3);
+  font-size: var(--fs-12);
+}
+
+.tower__facts dd {
+  margin: 2px 0 0;
+  color: #fff;
+  font-weight: 600;
+}
+
+.tower__sub {
+  margin-bottom: 8px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+  color: var(--ops-ink-2);
+}
+
+.tower__checks {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.tower__checks li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-top: 1px solid rgba(44, 69, 105, 0.6);
+}
+
+.tower__mark {
+  font-weight: 700;
+  color: var(--energy-hi);
+}
+
+.tower__checks li[data-ok='no'] .tower__mark,
+.tower__checks li[data-ok='no'] .tower__value {
+  color: #ff6b5e;
+}
+
+.tower__value {
+  color: var(--ops-ink-2);
+  text-align: right;
+}
+
+.tower__checks.is-running li {
+  animation: check-in 0.35s var(--ease-out) both;
+}
+
+@keyframes check-in {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tower__rule {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--hold-red);
+  background: rgba(200, 16, 46, 0.1);
+  color: var(--ops-ink);
+}
+
+.tower__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.tower__ok {
+  min-width: 160px;
+  justify-content: center;
+  border-color: var(--energy) !important;
+  background: var(--energy);
+  color: #fff !important;
+  font-size: var(--fs-18) !important;
+  min-height: 48px !important;
+}
+
+.tower__ok:hover:not(:disabled) {
+  background: #348a2e !important;
+}
+
+.tower__no {
+  min-height: 48px !important;
+}
+
+.tower__jump {
+  border-color: var(--sign-yellow) !important;
+  color: var(--sign-yellow) !important;
+}
+
+.tower__warn {
+  flex-basis: 100%;
+  color: #ffb020;
+  font-size: var(--fs-12);
+}
+
+/* ---------- Temiz pist raporu (kâğıt belge) ---------- */
+
+.report {
+  width: min(860px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 28px 32px;
+  border-radius: var(--radius-m);
+  background: #fbfbf8;
+  color: #16233a;
+  font-family: var(--font-body);
+  font-size: var(--fs-16);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+.report__head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #16233a;
+}
+
+.report__head img {
+  width: 86px;
+  height: auto;
+}
+
+.report__org {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--fs-14);
+  color: #4b5a70;
+}
+
+.report__head h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-36);
+  line-height: 1.05;
+}
+
+.report__meta {
+  margin-top: 2px;
+  color: #4b5a70;
+  font-size: var(--fs-14);
+}
+
+.report__stamp {
+  padding: 6px 12px;
+  border: 3px solid currentColor;
+  border-radius: 4px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-21);
+  transform: rotate(-4deg);
+}
+
+.report__stamp.is-clean {
+  color: #2f7d2a;
+}
+
+.report__stamp.is-found {
+  color: var(--hold-red);
+}
+
+.report__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin: 18px 0;
+}
+
+.report__grid dt {
+  color: #5d6a7c;
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+}
+
+.report__grid dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+.report__sub {
+  margin: 8px 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-16);
+}
+
+.report__none {
+  padding: 12px;
+  border: 1px dashed #b9c1cc;
+  color: #2f7d2a;
+  font-weight: 600;
+}
+
+.report__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-14);
+}
+
+.report__table th,
+.report__table td {
+  padding: 8px 6px;
+  border-top: 1px solid #d5dae1;
+  text-align: left;
+  vertical-align: top;
+}
+
+.report__table thead th {
+  border-top: 0;
+  color: #5d6a7c;
+  font-family: var(--font-ui);
+  font-weight: 500;
+}
+
+.report__table img {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+.report__note {
+  margin-top: 10px;
+  color: #4b5a70;
+  font-size: var(--fs-14);
+}
+
+.report__decision {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-left: 4px solid #16233a;
+  background: #eef0ec;
+  font-weight: 600;
+}
+
+.report__sim {
+  margin-top: 8px;
+  color: #6b7686;
+  font-size: var(--fs-12);
+}
+
+.report__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.report .btn {
+  color: #16233a;
+  border: 1.5px solid #16233a;
+  min-height: 42px;
+  font-size: var(--fs-16);
+}
+
+.report .btn--primary {
+  border-color: var(--sign-yellow);
+}
+
+@media print {
+  body.printing-report > *:not(#root),
+  body.printing-report #root > *:not(.ops),
+  body.printing-report .ops > *:not(.report-backdrop) {
+    display: none !important;
+  }
+  body.printing-report .ops,
+  body.printing-report .report-backdrop {
+    position: static;
+    display: block;
+    padding: 0;
+    background: none;
+  }
+  body.printing-report .report {
+    max-height: none;
+    box-shadow: none;
+    width: 100%;
+  }
+  .report__actions {
+    display: none !important;
+  }
+}
+
+/* ---------- Dar ekranlar ---------- */
+
+@media (max-width: 1180px) {
+  .ops {
+    grid-template-columns: 290px minmax(0, 1fr) 330px;
+  }
+}
+
+@media (max-width: 900px) {
+  .ops {
+    grid-template-columns: 1fr;
+    grid-template-rows: 52px 42vh minmax(0, 1fr);
+    gap: 0;
+    padding: 0 8px 8px;
+    overflow: hidden;
+  }
+  .ops-top {
+    grid-template-columns: 1fr auto;
+  }
+  .ops-top__name,
+  .ops-top__clock span,
+  .ops-select {
+    display: none;
+  }
+  .ops-top__clock {
+    font-size: var(--fs-24);
+  }
+  .ops-top__tools .seg button:nth-child(-n + 2) {
+    display: none;
+  }
+  .ops-left,
+  .ops-right {
+    grid-column: 1;
+    grid-row: 3;
+    padding-top: 8px;
+  }
+  .ops-right {
+    display: none;
+  }
+  .tower__facts,
+  .report__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 3D etiketleri yalnızca iki panel arasındaki sahne alanında görünsün */
+.ops > .sim-labels {
+  clip-path: inset(56px 384px 0 330px);
+}
+
+@media (max-width: 1180px) {
+  .ops > .sim-labels {
+    clip-path: inset(56px 342px 0 302px);
+  }
+}
+
+@media (max-width: 900px) {
+  .ops > .sim-labels {
+    clip-path: inset(52px 0 58vh 0);
+  }
+}
+
+/* Gün modu */
+.ops-sub {
+  margin: 4px 0 6px;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--fs-14);
+  color: var(--ops-ink-2);
+}
+
+.ops-next {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.ops-next li {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 8px;
+  color: var(--ops-ink-2);
+}
+
+.ops-next time {
+  color: var(--ops-ink);
+  font-weight: 600;
+}
+
+.ops-exit {
+  width: 100%;
+  margin-top: 8px;
+  justify-content: center !important;
+  font-size: var(--fs-12) !important;
+  min-height: 32px !important;
+}
