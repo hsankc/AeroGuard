@@ -158,7 +158,8 @@ export function EnergyStory() {
           </span>
           <span className="tile__text">
             <Fact id="pv" /> güneş ve <Fact id="turbine" /> türbin, <Fact id="battery" /> LFP bataryayı doldurur; batarya bütün hücreleri besler, şebeke yedekte. Bir sorti ≈0,04–0,05 kWh; en büyük
-            tüketim hücre iklimlendirmesi. Bekçi ve işçi hücreleri yükü artırır, bu yüzden enerji hesabı kovan boyuna göre yeniden yapılacak.
+            tüketim hücre iklimlendirmesi. Mini kovanda oran 1,8×. Çanakkale kovanında hücre dörde çıkınca 4 kWp ile oran ≈1,1×’e düşerdi; bu yüzden güneş paneli 6 kWp’ye
+            büyütülür: oran <Fact id="hiveEnergy" />, özerklik <Fact id="hiveAutonomy" />.
           </span>
           <a className="tile__foot" href={href('etki', 'enerji')}>
             Enerji hesaplayıcısını aç

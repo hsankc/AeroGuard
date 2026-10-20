@@ -72,8 +72,8 @@ Kovan trafiğe ve iklime göre büyür.
 | Kovan | Kim için | İçerik | Kurulum (tahmin, ±%30) | Beş yıla yayılmış yıllık maliyet |
 |---|---|---|---|---|
 | **Mini kovan (v2)** | En küçük havalimanı | 2 kâşif, 2 hücre, enerji adası | ≈124 bin $ | ≈39 bin $ |
-| **Çanakkale kovanı (önerilen)** | Düşük trafikli, rüzgârlı | 2 kâşif, 1 bekçi, 1 işçi, nöbetçiler, güvenli konum | ≈215 bin $ | ≈62 bin $ |
-| **Kış kovanı** | Soğuk iklim (ör. Erzurum, Kars) | Çanakkale kovanı + bakıcı rolü | ≈220 bin $ | ≈63 bin $ |
+| **Çanakkale kovanı (önerilen)** | Düşük trafikli, rüzgârlı | 2 kâşif, 1 bekçi, 1 işçi, nöbetçiler, güvenli konum, 6 kWp güneş | ≈218 bin $ | ≈63 bin $ |
+| **Kış kovanı** | Soğuk iklim (ör. Erzurum, Kars) | Çanakkale kovanı + bakıcı rolü | ≈223 bin $ | ≈64 bin $ |
 | **Geniş kovan** | Daha sık trafik | +1–2 kâşif ve orta saha peteği | +≈20 bin $ / kâşif | — |
 
 **Ek kalemler** (tahmin, ±%30):
@@ -86,6 +86,7 @@ Kovan trafiğe ve iklime göre büyür.
 | Nöbetçi kameralar | ≈14 bin $ |
 | Güvenli konum | ≈12 bin $ |
 | Kovan yazılımı (çok kastlı görev dağıtımı) | ≈10 bin $ |
+| Ek güneş paneli (4 → 6 kWp, rapordaki birim fiyatla) | ≈2,5 bin $ |
 
 **Yıllık işletme:** Mini kovanda ≈14 bin $, Çanakkale kovanında ≈19 bin $.
 
@@ -194,7 +195,7 @@ Bunlar ön tahmin ve sitede de öyle etiketlenecek. Modüler yapı sayesinde her
 | Çitten izinsiz giriş | Bekçi devriyesi | İzler, güvenliği yönlendirir | Güvenlik |
 | İzinsiz drone | RF izleyici, Remote ID | Konum ve yön uyarısı (biz müdahale etmeyiz) | Kule, güvenlik |
 | Deprem sonrası pist hasarı | Kule çağrısı | Şebeke çökse de enerji adasıyla ≈15 dk'da çatlak taraması: yardım uçakları için pistin kullanılabilirliği belgelenir | Kule, AFAD |
-| Şebeke kesintisi | Enerji yönetimi | Kovan ≈1,5 gün bataryayla çalışır | Teknik birim |
+| Şebeke kesintisi | Enerji yönetimi | Kovan bataryayla çalışır: Çanakkale kovanında ≈1 gün, mini kovanda ≈1,5 gün | Teknik birim |
 | Çevrede yangın, duman | Bekçi | Çevre izleme, görüş uyarısı | Kule |
 | Gece kayıp kişi araması | Kule çağrısı | Bekçi ile termal arama | Güvenlik |
 | Acil iniş beklentisi | Kule çağrısı | Pisti önceden tarar, inişten hemen sonra tekrar tarar | Kule |
@@ -215,7 +216,16 @@ Bunlar ön tahmin ve sitede de öyle etiketlenecek. Modüler yapı sayesinde her
 **Kovanın balı:**
 - Güneş ve türbin LFP bataryayı doldurur; batarya bütün hücreleri besler.
 - Bir sorti ≈0,04–0,05 kWh.
-- Bekçi ve işçi hücreleri tüketimi artırır, özellikle iklimlendirme. **Enerji hesabı kovan boyuna göre yeniden yapılacak.**
+- Bekçi ve işçi hücreleri tüketimi artırır, özellikle iklimlendirme. Kovan boyuna göre hesap (sitedeki "Kovanını kur" ile aynı):
+
+  | | Mini kovan (v2) | Çanakkale kovanı |
+  |---|---|---|
+  | Hücre | 2 | 4 |
+  | Günlük tüketim | 10 kWh (2 × 100 W iklimlendirme, sunucu 150 W, iletişim 25 W, sortiler 1 kWh) | ≈16 kWh (4 × 100 W, sunucu, iletişim, 2 nöbetçi direk × 20 W varsayım, sortiler ≈1,3 kWh) |
+  | Güneş | 4 kWp, ≈5.400 kWh/yıl | **6 kWp**, ≈8.100 kWh/yıl |
+  | Toplam üretim | ≈8.550 kWh/yıl | ≈11.250 kWh/yıl |
+  | Üretim / tasarım yükü (×1,3) | 1,8× | ≈1,5× (4 kWp ile ≈1,1× kalırdı) |
+  | 20 kWh bataryayla özerklik | ≈1,5 gün | ≈1 gün |
 
 ### 4.6 Taşıma kapasitesi ve dayanıklılık
 

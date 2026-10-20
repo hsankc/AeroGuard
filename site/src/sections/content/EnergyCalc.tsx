@@ -2,18 +2,21 @@ import { useState } from 'react'
 import { CalcShell, Formula, Out, Slider, tr } from '../../components/Calc'
 
 /*
-  Enerji adası hesaplayıcı. Varsayılanlar rapordaki Tablo 6'yı aynen verir:
+  Enerji adası hesaplayıcı. Mini kovan varsayılanları rapordaki Tablo 6'yı aynen verir:
   tüketim 10 kWh/gün (3.650 kWh/yıl), tasarım yükü 4.745 kWh/yıl (%30 pay),
   üretim 5.400 + 3.150 ≈ 8.550 kWh/yıl → 1,8×, 20 kWh ile ≈1,5 gün, fazla ≈3.800 kWh → ≈21.000 km.
+  Çanakkale kovanı (V3): 4 hücre, 2 nöbetçi direk (≈20 W, varsayım), bekçi ve işçi sortileri ve 6 kWp güneş:
+  ≈16 kWh/gün, üretim ≈11.250 kWh/yıl → ≈1,5×, ≈1 gün. Kovanını kur hesaplayıcısıyla aynı hesap.
 */
 
-const D = { pvKwp: 4, pvYield: 1350, turbineKw: 3, cf: 12, battery: 20, margin: 30, stationW: 100, serverW: 150, sorties: 20 }
+const D = { pvKwp: 4, pvYield: 1350, turbineKw: 3, cf: 12, battery: 20, margin: 30, stationW: 100, serverW: 150, sorties: 20, cells: 2, mastW: 0, otherSorties: 0 }
+const CKZ: typeof D = { ...D, pvKwp: 6, cells: 4, mastW: 40, otherSorties: 6 }
 const COMMS_W = 25
 const SORTIE_KWH = 0.05
 const EV_KWH_PER_100 = 18
 
 export function computeEnergy(v: typeof D) {
-  const perDay = ((2 * v.stationW + v.serverW + COMMS_W) * 24) / 1000 + v.sorties * SORTIE_KWH
+  const perDay = ((v.cells * v.stationW + v.serverW + COMMS_W + v.mastW) * 24) / 1000 + (v.sorties + v.otherSorties) * SORTIE_KWH
   const consumption = perDay * 365
   const design = consumption * (1 + v.margin / 100)
   const pv = v.pvKwp * v.pvYield
@@ -114,25 +117,44 @@ function EnergyBars({ r, margin }: { r: ReturnType<typeof computeEnergy>; margin
 }
 
 export function EnergyCalc() {
+  const [hive, setHive] = useState<'mini' | 'ckz'>('mini')
+  const B = hive === 'ckz' ? CKZ : D
   const [v, setV] = useState(D)
   const set = (k: keyof typeof D) => (x: number) => setV((s) => ({ ...s, [k]: x }))
   const r = computeEnergy(v)
-  const changed = (Object.keys(D) as (keyof typeof D)[]).some((k) => v[k] !== D[k])
+  const changed = (Object.keys(D) as (keyof typeof D)[]).some((k) => v[k] !== B[k])
+  const pick = (h: 'mini' | 'ckz') => {
+    setHive(h)
+    setV(h === 'ckz' ? CKZ : D)
+  }
+  const ref = hive === 'ckz' ? { ratio: '≈1,5×', aut: '≈1 gün', day: '≈16 kWh/gün', prod: '≈11.250 kWh' } : { ratio: '1,8×', aut: '≈1,5 gün', day: '10 kWh/gün', prod: '≈8.550 kWh' }
 
   return (
     <CalcShell
       changed={changed}
-      onReset={() => setV(D)}
+      onReset={() => setV(B)}
       inputs={
         <>
-          <Slider label="Güneş paneli" unit="kWp" min={0} max={8} step={0.5} digits={1} value={v.pvKwp} reportValue={D.pvKwp} onChange={set('pvKwp')} />
+          <div className="pseg" role="group" aria-label="Kovan boyu">
+            <button type="button" aria-pressed={hive === 'mini'} onClick={() => pick('mini')}>
+              Mini kovan (rapor v2)
+            </button>
+            <button type="button" aria-pressed={hive === 'ckz'} onClick={() => pick('ckz')}>
+              Çanakkale kovanı
+            </button>
+          </div>
+          <Slider label="Güneş paneli" unit="kWp" min={0} max={10} step={0.5} digits={1} value={v.pvKwp} reportValue={B.pvKwp} onChange={set('pvKwp')} />
           <Slider label="Güneş verimi" unit="kWh/kWp·yıl" min={1000} max={1600} step={25} value={v.pvYield} reportValue={D.pvYield} onChange={set('pvYield')} hint="Temkinli varsayım" />
           <Slider label="Dikey eksenli türbin" unit="kW" min={0} max={6} step={0.5} digits={1} value={v.turbineKw} reportValue={D.turbineKw} onChange={set('turbineKw')} />
           <Slider label="Türbin kapasite faktörü" unit="%" min={5} max={25} step={1} value={v.cf} reportValue={D.cf} onChange={set('cf')} hint="Türbülans nedeniyle bilerek düşük" />
           <Slider label="Batarya" unit="kWh" min={5} max={40} step={1} value={v.battery} reportValue={D.battery} onChange={set('battery')} />
-          <Slider label="İstasyon iklimlendirme (her biri)" unit="W" min={50} max={250} step={10} value={v.stationW} reportValue={D.stationW} onChange={set('stationW')} hint="En büyük tüketim kalemi" />
+          <Slider label="Petek hücresi" unit="" min={2} max={6} step={1} value={v.cells} reportValue={B.cells} onChange={set('cells')} hint="Her drone bir hücre" />
+          <Slider label="Hücre iklimlendirme (her biri)" unit="W" min={50} max={250} step={10} value={v.stationW} reportValue={D.stationW} onChange={set('stationW')} hint="En büyük tüketim kalemi" />
           <Slider label="Kenar sunucu ve ağ" unit="W" min={50} max={300} step={10} value={v.serverW} reportValue={D.serverW} onChange={set('serverW')} />
-          <Slider label="Günlük sorti (iki drone)" unit="" min={6} max={40} step={1} value={v.sorties} reportValue={D.sorties} onChange={set('sorties')} hint="Sorti başına ≈0,05 kWh, uzun görevler dahil" />
+          <Slider label="Günlük sorti (iki kâşif)" unit="" min={6} max={40} step={1} value={v.sorties} reportValue={D.sorties} onChange={set('sorties')} hint="Sorti başına ≈0,05 kWh, uzun görevler dahil" />
+          {hive === 'ckz' && (
+            <Slider label="Bekçi ve işçi sortisi" unit="" min={0} max={20} step={1} value={v.otherSorties} reportValue={CKZ.otherSorties} onChange={set('otherSorties')} hint="Varsayım: bekçi 4, işçi 2" />
+          )}
           <Slider label="Güvenlik payı" unit="%" min={0} max={60} step={5} value={v.margin} reportValue={D.margin} onChange={set('margin')} />
         </>
       }
@@ -144,14 +166,15 @@ export function EnergyCalc() {
             value={`${tr(r.ratio, 1)}×`}
             note={
               <>
-                Raporda 1,8×.{' '}
+                {hive === 'ckz' ? 'Çanakkale kovanı ' : 'Raporda '}
+                {ref.ratio}.{' '}
                 <span className={r.ratio >= 1 ? 'is-good' : 'is-bad'}>{r.ratio >= 1 ? 'Sistem tükettiğinden fazlasını üretiyor' : 'Üretim yükü karşılamıyor, şebeke gerekir'}</span>
               </>
             }
           />
-          <Out strong label="Bataryayla özerklik" value={`${tr(r.autonomy, 1)} gün`} note="Raporda ≈1,5 gün. Sonrasında şebeke devreye girer." />
-          <Out label="Günlük tüketim" value={`${tr(r.perDay, 1)} kWh`} note="Raporda 10 kWh/gün" />
-          <Out label="Yıllık üretim" value={`≈${tr(Math.round(r.production / 50) * 50)} kWh`} note="Raporda ≈8.550 kWh" />
+          <Out strong label="Bataryayla özerklik" value={`${tr(r.autonomy, 1)} gün`} note={`${hive === 'ckz' ? 'Çanakkale kovanı' : 'Raporda'} ${ref.aut}. Sonrasında şebeke devreye girer.`} />
+          <Out label="Günlük tüketim" value={`${tr(r.perDay, 1)} kWh`} note={`${hive === 'ckz' ? 'Çanakkale kovanı' : 'Raporda'} ${ref.day}`} />
+          <Out label="Yıllık üretim" value={`≈${tr(Math.round(r.production / 50) * 50)} kWh`} note={`${hive === 'ckz' ? 'Çanakkale kovanı' : 'Raporda'} ${ref.prod}`} />
           <Out label="Fazla enerji" value={`≈${tr(Math.round(r.surplus / 100) * 100)} kWh/yıl`} note="Raporda ≈3.800 kWh" />
           <Out label="Fazlayla elektrikli saha aracı" value={`≈${tr(Math.round(r.evKm / 1000) * 1000)} km/yıl`} note="18 kWh/100 km; raporda ≈21.000 km" />
         </>
@@ -161,7 +184,7 @@ export function EnergyCalc() {
           <EnergyBars r={r} margin={v.margin} />
           <Formula>
             <p>
-              <code>günlük tüketim = (2 × istasyon + sunucu + 25 W haberleşme) × 24 sa + sorti × 0,05 kWh</code> = {tr(r.perDay, 2)} kWh
+              <code>günlük tüketim = (hücre × iklimlendirme + sunucu + 25 W haberleşme + nöbetçi direkler) × 24 sa + sorti × 0,05 kWh</code> = {tr(r.perDay, 2)} kWh
             </p>
             <p>
               <code>tasarım yükü = tüketim × 365 × (1 + pay)</code> = {tr(r.design)} kWh/yıl

@@ -11,20 +11,23 @@ import { useMemo, useState } from 'react'
   Ek güneş paneli rapordaki birim fiyatla: 4 kWp = 5 bin $.
 */
 
-type Config = { scouts: number; guard: boolean; worker: boolean; nurse: boolean; sentinel: boolean; safeNav: boolean }
+type Config = { scouts: number; guard: boolean; worker: boolean; nurse: boolean; sentinel: boolean; safeNav: boolean; pv: number }
 
 const PRESETS: { id: string; name: string; c: Config }[] = [
-  { id: 'mini', name: 'Mini kovan (v2)', c: { scouts: 2, guard: false, worker: false, nurse: false, sentinel: false, safeNav: false } },
-  { id: 'ckz', name: 'Çanakkale kovanı', c: { scouts: 2, guard: true, worker: true, nurse: false, sentinel: true, safeNav: true } },
-  { id: 'winter', name: 'Kış kovanı', c: { scouts: 2, guard: true, worker: true, nurse: true, sentinel: true, safeNav: true } },
-  { id: 'wide', name: 'Geniş kovan', c: { scouts: 4, guard: true, worker: true, nurse: false, sentinel: true, safeNav: true } },
+  { id: 'mini', name: 'Mini kovan (v2)', c: { scouts: 2, guard: false, worker: false, nurse: false, sentinel: false, safeNav: false, pv: 4 } },
+  // 4 hücreli kovanda 4 kWp ile oran ≈1,1× kalır: güneş paneli 6 kWp'ye büyütülür (≈1,5×)
+  { id: 'ckz', name: 'Çanakkale kovanı', c: { scouts: 2, guard: true, worker: true, nurse: false, sentinel: true, safeNav: true, pv: 6 } },
+  { id: 'winter', name: 'Kış kovanı', c: { scouts: 2, guard: true, worker: true, nurse: true, sentinel: true, safeNav: true, pv: 6 } },
+  { id: 'wide', name: 'Geniş kovan', c: { scouts: 4, guard: true, worker: true, nurse: false, sentinel: true, safeNav: true, pv: 8 } },
 ]
 
 const SCAN_MIN: Record<number, string> = { 2: '≈12', 3: '≈9', 4: '≈8' }
 const PV_KWH_PER_KWP = 1350
 const TURBINE_KWH = 3150
+const BATTERY_KWH = 20
 
-export function computeHive(c: Config, pvKwp = 4) {
+export function computeHive(c: Config) {
+  const pvKwp = c.pv
   const items: [string, number][] = [['Mini kovan: 2 kâşif, 2 hücre, enerji adası', 124]]
   if (c.scouts > 2) items.push([`Ek kâşif × ${c.scouts - 2}`, 20 * (c.scouts - 2)])
   if (c.guard) items.push(['Bekçi hücresi', 20])
@@ -53,6 +56,7 @@ export function computeHive(c: Config, pvKwp = 4) {
   const daily = parts.reduce((s, [, v]) => s + v, 0)
   const production = pvKwp * PV_KWH_PER_KWP + TURBINE_KWH
   const ratio = production / (daily * 365 * 1.3)
+  const autonomy = BATTERY_KWH / (daily * 1.3)
 
   const caps = [
     { name: 'Uçuş öncesi FOD taraması', on: true },
@@ -63,7 +67,7 @@ export function computeHive(c: Config, pvKwp = 4) {
     { name: 'Acil durumu ilk fark etme', on: c.sentinel, else: 'drone’lar uçak hareketinde yerde' },
     { name: 'Karıştırma ve aldatmaya dayanıklı konum', on: c.safeNav, else: 'yalnızca GNSS + RTK' },
   ]
-  return { items, capex, opex, yearly, cells, parts, daily, production, ratio, caps }
+  return { items, capex, opex, yearly, cells, parts, daily, production, ratio, autonomy, caps }
 }
 
 const k = (n: number) => `≈${Math.round(n)} bin $`
@@ -111,11 +115,10 @@ function PetekMap({ c }: { c: Config }) {
 
 export function HiveBuilder() {
   const [c, setC] = useState<Config>(PRESETS[1].c)
-  const [pv, setPv] = useState(4)
-  const r = useMemo(() => computeHive(c, pv), [c, pv])
+  const r = useMemo(() => computeHive(c), [c])
   const preset = PRESETS.find((p) => JSON.stringify(p.c) === JSON.stringify(c))
   const set = (p: Partial<Config>) => setC((x) => ({ ...x, ...p, nurse: (p.worker ?? x.worker) ? (p.nurse ?? x.nurse) : false }))
-  const toggle = (key: keyof Omit<Config, 'scouts'>, label: string, disabled = false) => (
+  const toggle = (key: keyof Omit<Config, 'scouts' | 'pv'>, label: string, disabled = false) => (
     <label className={`hb__toggle ${disabled ? 'is-disabled' : ''}`}>
       <input type="checkbox" checked={c[key]} disabled={disabled} onChange={(e) => set({ [key]: e.target.checked })} />
       <span>{label}</span>
@@ -154,9 +157,9 @@ export function HiveBuilder() {
           {toggle('safeNav', 'Güvenli konum')}
           <label className="hb__pv">
             <span>
-              Güneş paneli <b className="num">{pv} kWp</b>
+              Güneş paneli <b className="num">{c.pv} kWp</b>
             </span>
-            <input type="range" min={4} max={8} step={1} value={pv} onChange={(e) => setPv(Number(e.target.value))} />
+            <input type="range" min={4} max={10} step={1} value={c.pv} onChange={(e) => set({ pv: Number(e.target.value) })} />
           </label>
         </div>
 
@@ -181,7 +184,7 @@ export function HiveBuilder() {
               <span className="tile__label">Enerji: üretim / tasarım yükü</span>
               <span className={`tile__value num ${r.ratio < 1.3 ? 'hb__warn' : ''}`}>{f1(r.ratio)}×</span>
               <span className="tile__text">
-                Günlük tüketim ≈{f1(r.daily)} kWh, yıllık üretim ≈{Math.round(r.production).toLocaleString('tr-TR')} kWh.
+                Günlük tüketim ≈{f1(r.daily)} kWh, yıllık üretim ≈{Math.round(r.production).toLocaleString('tr-TR')} kWh. 20 kWh bataryayla özerklik ≈{f1(r.autonomy)} gün.
                 {r.ratio < 1.3 ? ' Pay az: güneş panelini artırın.' : ''}
               </span>
             </div>
@@ -228,7 +231,8 @@ export function HiveBuilder() {
       </div>
       <p className="hangar__note">
         Hepsi V3 ön tahmini. Enerji hesabındaki nöbetçi direk tüketimi (≈20 W) ve kast başına sorti sayıları (bekçi 4, işçi 2) varsayımdır; mini kovan bu hesapla raporun 10 kWh/gün ve 1,8×
-        değerlerini verir. Ek güneş paneli rapordaki birim fiyatla (4 kWp = 5 bin $) kWp başına ≈1,25 bin $ alınmıştır.
+        değerlerini verir. Çanakkale kovanı 4 kWp ile ≈1,1×’te kaldığı için 6 kWp güneşle kurulur (≈1,5×). Ek güneş paneli rapordaki birim fiyatla (4 kWp = 5 bin $) kWp başına ≈1,25 bin $
+        alınmıştır.
       </p>
     </div>
   )

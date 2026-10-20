@@ -343,19 +343,29 @@ export const FACTS = {
     note: '2 kâşif, 2 petek hücresi, enerji adası, kenar sunucu, yazılım ve izinler. Rapordaki Tablo 8.',
   },
   hiveCkz: {
-    value: '≈215 bin $',
+    value: '≈218 bin $',
     label: 'Çanakkale kovanı kurulumu (V3, önerilen)',
-    note: 'Mini kovan + bekçi hücresi ≈20 + işçi hücresi ≈35 + nöbetçi kameralar ≈14 + güvenli konum ≈12 + kovan yazılımı ≈10 bin $. V3 ön tahmini, ±%30.',
+    note: 'Mini kovan + bekçi hücresi ≈20 + işçi hücresi ≈35 + nöbetçi kameralar ≈14 + güvenli konum ≈12 + kovan yazılımı ≈10 + ek 2 kWp güneş ≈2,5 bin $. V3 ön tahmini, ±%30.',
   },
   hiveWinter: {
-    value: '≈220 bin $',
+    value: '≈223 bin $',
     label: 'Kış kovanı kurulumu (V3)',
     note: 'Çanakkale kovanı + bakıcı rolü (yazılım ve kalibrasyon ≈5 bin $). Soğuk iklimli bölgesel havalimanları için.',
   },
   hiveYear: {
-    value: '≈62 bin $/yıl',
+    value: '≈63 bin $/yıl',
     label: 'Çanakkale kovanı, beş yıla yayılmış yıllık maliyet',
-    note: '(≈215 bin $ + 5 × ≈19 bin $ işletme) ÷ 5. V3 ön tahmini.',
+    note: '(≈218 bin $ + 5 × ≈19 bin $ işletme) ÷ 5. V3 ön tahmini.',
+  },
+  hiveEnergy: {
+    value: '≈1,5×',
+    label: 'Çanakkale kovanı: yenilenebilir üretim / tasarım yükü',
+    note: '6 kWp güneş (≈8.100 kWh) + 3 kW türbin (≈3.150 kWh) ≈11.250 kWh/yıl ÷ (≈16 kWh/gün × 365 × 1,3). Tüketim: 4 hücre × 100 W, sunucu 150 W, iletişim 25 W, 2 nöbetçi direk × 20 W (varsayım), sortiler ≈1,3 kWh/gün. 4 kWp ile oran ≈1,1× kalırdı; bu yüzden güneş paneli büyütüldü.',
+  },
+  hiveAutonomy: {
+    value: '≈1 gün',
+    label: 'Çanakkale kovanı: bataryayla özerklik',
+    note: '20 kWh ÷ ≈21 kWh/gün tasarım yükü. Mini kovanda ≈1,5 gün. Sonrasında şebeke devreye girer.',
   },
   workerPayload: {
     value: '≈2,7 kg',

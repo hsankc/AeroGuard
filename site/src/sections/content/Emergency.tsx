@@ -38,7 +38,7 @@ const SCENARIOS = [
   { name: 'Çitten izinsiz giriş', first: 'Bekçi devriyesi', action: 'İzler, güvenliği yönlendirir', to: 'Güvenlik' },
   { name: 'İzinsiz drone', first: 'RF izleyici, Remote ID', action: 'Konum ve yön uyarısı; müdahale etmeyiz', to: 'Kule, güvenlik' },
   { name: 'Deprem sonrası pist hasarı', first: 'Kule çağrısı', action: 'Şebeke çökse de enerji adasıyla ≈15 dk’da çatlak taraması: yardım uçakları için pistin kullanılabilirliği belgelenir', to: 'Kule, AFAD', critical: true },
-  { name: 'Şebeke kesintisi', first: 'Enerji yönetimi', action: 'Kovan ≈1,5 gün bataryayla çalışmayı sürdürür', to: 'Teknik birim' },
+  { name: 'Şebeke kesintisi', first: 'Enerji yönetimi', action: 'Kovan bataryayla çalışmayı sürdürür: Çanakkale kovanında ≈1 gün, mini kovanda ≈1,5 gün', to: 'Teknik birim' },
   { name: 'Çevrede yangın ve duman', first: 'Bekçi', action: 'Çevre izleme, görüş uyarısı', to: 'Kule' },
   { name: 'Gece kayıp kişi araması', first: 'Kule çağrısı', action: 'Bekçi ile termal arama', to: 'Güvenlik' },
   { name: 'Acil iniş beklentisi', first: 'Kule çağrısı', action: 'Pisti önceden tarar, inişten hemen sonra tekrar tarar', to: 'Kule' },

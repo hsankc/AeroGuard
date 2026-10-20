@@ -79,7 +79,7 @@ const QA: { q: string; a: ReactNode; action?: { label: string; run: () => void }
   },
   {
     q: 'Bölgesel bir havalimanı bunu nasıl finanse edecek?',
-    a: 'Kurulum parası ödemeden: hizmet olarak drone modelinde havalimanı beş yıllık sözleşmeyle yıllık abonelik öder. Kurulum ve işletme beş yıla yayıldığında maliyet mini kovanda yaklaşık 39 bin $/yıl, önerilen Çanakkale kovanında ≈62 bin $/yıl (ön tahmin); abonelik fiyatı pilot sonrası netleşecek.',
+    a: 'Kurulum parası ödemeden: hizmet olarak drone modelinde havalimanı beş yıllık sözleşmeyle yıllık abonelik öder. Kurulum ve işletme beş yıla yayıldığında maliyet mini kovanda yaklaşık 39 bin $/yıl, önerilen Çanakkale kovanında ≈63 bin $/yıl (ön tahmin); abonelik fiyatı pilot sonrası netleşecek.',
   },
   {
     q: 'İzin çıkmazsa?',

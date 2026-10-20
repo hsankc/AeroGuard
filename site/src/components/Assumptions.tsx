@@ -23,7 +23,7 @@ const GROUPS: { title: string; ids: FactId[] }[] = [
   { title: 'Sürdürülebilirlik', ids: ['co2', 'co2Fleet'] },
   { title: 'Maliyet', ids: ['capex', 'opex', 'nextAirport', 'daas'] },
   { title: 'Yapay zekâ ve pilot hedefleri', ids: ['fodA', 'kpiSensitivity', 'kpiFalseAlarm', 'kpiScanTime', 'kpiReport', 'kpiCompletion', 'kpiEnergy'] },
-  { title: 'Kovan (V3, ön tahmin)', ids: ['hiveMini', 'hiveCkz', 'hiveWinter', 'hiveYear', 'workerPayload', 'pickupLimit', 'sentinelKpi', 'gnssRisk', 'iceTrl'] },
+  { title: 'Kovan (V3, ön tahmin)', ids: ['hiveMini', 'hiveCkz', 'hiveWinter', 'hiveYear', 'hiveEnergy', 'hiveAutonomy', 'workerPayload', 'pickupLimit', 'sentinelKpi', 'gnssRisk', 'iceTrl'] },
   { title: 'Yol haritası', ids: ['roadmap'] },
 ]
 

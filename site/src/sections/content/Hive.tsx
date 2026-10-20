@@ -172,7 +172,7 @@ export function HiveSizes() {
           <tr className="is-us">
             <th scope="row">Çanakkale kovanı</th>
             <td>Düşük trafikli, rüzgârlı</td>
-            <td>2 kâşif, 1 bekçi, 1 işçi, nöbetçiler, güvenli konum</td>
+            <td>2 kâşif, 1 bekçi, 1 işçi, nöbetçiler, güvenli konum, 6 kWp güneş</td>
             <td>
               <Fact id="hiveCkz" />
             </td>
