@@ -17,21 +17,25 @@ const fmt1 = (n: number) => n.toLocaleString('tr-TR', { maximumFractionDigits: 1
 function liveRows(kind: PickInfo['live']): [string, string][] {
   const e = getEngine()
   if (!e || !kind) return []
-  if (kind === 'drone1' || kind === 'drone2') {
-    const d = e.mission.drones[kind === 'drone1' ? 0 : 1]
-    return [
+  if (kind === 'drone1' || kind === 'drone2' || kind === 'guard' || kind === 'worker') {
+    const d = kind === 'guard' ? e.mission.guard : kind === 'worker' ? e.mission.worker : e.mission.drones[kind === 'drone1' ? 0 : 1]
+    const rows: [string, string][] = [
       ['Durum', MODE_LABEL[d.mode]],
       ['Batarya', `%${Math.round(d.battery)}`],
       ['İrtifa', `${Math.round(d.airborne ? d.pos.y : 0)} m`],
       ['Hız', `${fmt1(d.speed)} m/s`],
     ]
+    if (kind === 'worker') rows.push(['Taşıdığı', d.carrying ? 'pistten alınan nesne' : 'yok'])
+    return rows
   }
   if (kind === 'petekA' || kind === 'petekB') {
-    const st = e.stations[kind === 'petekA' ? 0 : 1]
-    const d = e.mission.drones[kind === 'petekA' ? 0 : 1]
+    const a = kind === 'petekA'
+    const lid = (i: number) => (e.stations[i].isOpen ? 'açık' : e.stations[i].isClosed ? 'kapalı' : 'hareket ediyor')
+    const scout = e.mission.drones[a ? 0 : 1]
+    const other = a ? e.mission.guard : e.mission.worker
     return [
-      ['Kapak', st.isOpen ? 'açık' : st.isClosed ? 'kapalı' : 'hareket ediyor'],
-      ['Kâşif', MODE_LABEL[d.mode]],
+      [a ? 'Kâşif-1' : 'Kâşif-2', `${MODE_LABEL[scout.mode]} · kapak ${lid(a ? 0 : 1)}`],
+      [a ? 'Bekçi' : 'İşçi', `${MODE_LABEL[other.mode]} · kapak ${lid(a ? 2 : 3)}`],
     ]
   }
   const wind = useSim.getState().wind

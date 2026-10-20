@@ -103,6 +103,8 @@ export class Annex14Layer {
       { name: 'Petek A', x: LAYOUT.stationA.x, z: LAYOUT.stationA.z, h: 4 },
       { name: 'Petek B', x: LAYOUT.stationB.x, z: LAYOUT.stationB.z, h: 4 },
       { name: 'Türbin', x: LAYOUT.energy.x + 8, z: LAYOUT.energy.z, h: 9.2 },
+      // nöbetçi direk peteğin pistten uzak kenarında (petek merkezinden 9,5 m geride)
+      { name: 'Nöbetçi direk', x: LAYOUT.stationB.x, z: LAYOUT.stationB.z + 9.5, h: 5.2 },
     ]
     for (const m of marks) {
       const a = allowedHeight(m.z)

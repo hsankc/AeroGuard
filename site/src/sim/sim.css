@@ -67,8 +67,18 @@ main {
 }
 
 .sim-label--d1 {
-  background: var(--energy);
-  color: #fff;
+  background: #5aaaf0;
+  color: #06121f;
+}
+
+.sim-label--guard {
+  background: var(--caste-guard);
+  color: #1d1208;
+}
+
+.sim-label--worker {
+  background: var(--caste-worker);
+  color: #08140a;
 }
 
 .sim-label--d2 {

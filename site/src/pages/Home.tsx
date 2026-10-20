@@ -78,7 +78,7 @@ export function Home() {
             </dd>
           </div>
           <div>
-            <dt>yenilenebilir üretim / tasarım yükü</dt>
+            <dt>yenilenebilir üretim / tasarım yükü, mini kovan</dt>
             <dd>
               <Fact id="energyRatio" />
             </dd>
@@ -165,7 +165,7 @@ export function Home() {
           <a className="tile tile--w4 glass" href={href('etki')}>
             <span className="tile__label">Etki</span>
             <span className="tile__value">1,8×</span>
-            <span className="tile__text">Kovan tükettiğinden fazlasını güneş ve rüzgârdan üretiyor. Varsayımları değiştirip kendiniz hesaplayın.</span>
+            <span className="tile__text">Mini kovan tükettiğinin 1,8 katını güneş ve rüzgârdan üretiyor. Hücre ekledikçe dengenin nasıl değiştiğini Kovanını kur’da görün.</span>
           </a>
 
           <a className="tile tile--w4 glass" href={href('gelisim')}>

@@ -28,6 +28,7 @@ export type DroneMode =
   | 'emergency'
   | 'down'
   | 'patrol'
+  | 'pickup'
 
 export type DroneTelemetry = {
   id: 1 | 2
@@ -76,7 +77,7 @@ export type Quality = 'low' | 'medium' | 'high'
 export type Check = { id: string; label: string; value: string; ok: boolean | null }
 
 /** Keşif modunda seçilebilen nesneler */
-export type PickId = 'petekA' | 'petekB' | 'drone1' | 'drone2' | 'energy' | 'tower' | 'terminal' | 'arff' | 'aircraft' | 'runway' | 'windsock' | 'emergency'
+export type PickId = 'petekA' | 'petekB' | 'drone1' | 'drone2' | 'guard' | 'worker' | 'energy' | 'tower' | 'terminal' | 'arff' | 'aircraft' | 'runway' | 'windsock' | 'emergency'
 
 type State = {
   opsOpen: boolean

@@ -2,8 +2,13 @@ import * as THREE from 'three'
 import { footprint } from './layout'
 import { glowTexture } from './textures'
 
-/* Görünürlük için drone gerçek boyutun ≈2,5 katı modellenmiştir (≈1 m). */
+/*
+  Görünürlük için drone gerçek boyutun ≈2,5 katı modellenmiştir (≈1 m).
+  Kastlar: kâşif (M3TD sınıfı, kamera izi), bekçi (aynı gövde + hoparlör ve ışık), işçi (M350 sınıfı, daha büyük
+  gövde, vinç ve toplama başlığı).
+*/
 export const DRONE_SCALE = 2.5
+export type DroneCaste = 'scout' | 'guard' | 'worker'
 
 const glow = glowTexture()
 
@@ -29,18 +34,25 @@ export class DroneVisual {
   private frustum: THREE.LineSegments
   private rotorSpin = 0
   private t = 0
+  private showFootprint: boolean
+  private cable: THREE.Mesh | null = null
+  private hook: THREE.Group | null = null
+  private cargo: THREE.Mesh | null = null
+  private winch = 0
 
   constructor(
-    readonly id: 1 | 2,
+    readonly id: number,
     readonly color: string,
+    readonly caste: DroneCaste = 'scout',
   ) {
+    this.showFootprint = caste === 'scout'
     const shell = new THREE.MeshStandardMaterial({ color: '#30363d', roughness: 0.45, metalness: 0.25 })
     const shellLight = new THREE.MeshStandardMaterial({ color: '#4a525b', roughness: 0.5, metalness: 0.2 })
     const accent = new THREE.MeshStandardMaterial({ color, roughness: 0.4, emissive: new THREE.Color(color), emissiveIntensity: 0.35 })
     const propMat = new THREE.MeshStandardMaterial({ color: '#15181b', roughness: 0.6 })
 
     const model = new THREE.Group()
-    model.scale.setScalar(DRONE_SCALE)
+    model.scale.setScalar(DRONE_SCALE * (caste === 'worker' ? 1.45 : 1))
     this.body.add(model)
     this.root.add(this.body)
 
@@ -103,6 +115,38 @@ export class DroneVisual {
     const rtk = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.012, 14), shellLight)
     rtk.position.set(-0.05, 0.08, 0)
     model.add(rtk)
+
+    if (caste === 'guard') {
+      // hafif hoparlör ve ışık çubuğu (kuş caydırma)
+      const horn = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.04, 0.06, 14, 1, true).rotateZ(-Math.PI / 2), accent)
+      horn.position.set(-0.02, -0.055, 0)
+      model.add(horn)
+      const bar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.012, 0.02),
+        new THREE.MeshStandardMaterial({ color: '#fff', emissive: new THREE.Color('#ffd27a'), emissiveIntensity: 1.4 }),
+      )
+      bar.position.set(0, -0.045, 0.05)
+      model.add(bar)
+    }
+    if (caste === 'worker') {
+      // vinç gövdesi; kablo ve başlık dünya ölçeğinde (kök gruba bağlı, eğilmez)
+      const pod = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.04, 0.07), shellLight)
+      pod.position.set(0, -0.06, 0)
+      model.add(pod)
+      this.cable = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1, 6).translate(0, -0.5, 0), new THREE.MeshStandardMaterial({ color: '#222', roughness: 0.6 }))
+      this.cable.position.y = -0.3
+      this.cable.visible = false
+      this.root.add(this.cable)
+      this.hook = new THREE.Group()
+      const magnet = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.1, 14), new THREE.MeshStandardMaterial({ color: '#c0392b', roughness: 0.4, metalness: 0.4 }))
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.025, 6, 16).rotateX(Math.PI / 2), accent)
+      this.hook.add(magnet, ring)
+      this.hook.visible = false
+      this.root.add(this.hook)
+      this.cargo = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.18), new THREE.MeshStandardMaterial({ color: '#5a5f66', roughness: 0.5, metalness: 0.5 }))
+      this.cargo.visible = false
+      this.root.add(this.cargo)
+    }
 
     // seyir ışıkları: sol kırmızı, sağ yeşil, üstte beyaz çakar
     const red = sprite('#ff3b30', 0.9)
@@ -176,7 +220,7 @@ export class DroneVisual {
     this.camera.up.set(fx, 0, fz)
     this.camera.lookAt(pos.x + fx * 0.25, 0, pos.z + fz * 0.25)
 
-    const show = pos.y > 3
+    const show = pos.y > 3 && this.showFootprint
     this.ground.visible = show
     this.frustum.visible = show
     if (show) {
@@ -204,6 +248,20 @@ export class DroneVisual {
       a.needsUpdate = true
       ;(this.frustum.material as THREE.LineBasicMaterial).opacity = scanning ? 0.4 : 0.15
     }
+  }
+
+  /** İşçi: vinç kablosunun hedef uzunluğu (m) ve taşınan nesne. Kablo yumuşakça iner ve sarılır. */
+  setWinch(target: number, carrying: boolean, dt: number) {
+    if (!this.cable || !this.hook || !this.cargo) return
+    const want = Math.max(carrying ? 0.9 : 0, target)
+    this.winch += Math.sign(want - this.winch) * Math.min(Math.abs(want - this.winch), dt * 0.9)
+    const on = this.winch > 0.05
+    this.cable.visible = on
+    this.hook.visible = true
+    this.cable.scale.y = Math.max(0.01, this.winch)
+    this.hook.position.y = -0.3 - this.winch - 0.06
+    this.cargo.visible = carrying
+    this.cargo.position.y = this.hook.position.y - 0.12
   }
 
   setVisible(v: boolean) {

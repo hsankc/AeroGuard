@@ -13,7 +13,7 @@ export type PickInfo = {
   title: string
   text: string
   rows?: [string, string][]
-  live?: 'drone1' | 'drone2' | 'petekA' | 'petekB' | 'energy' | 'wind'
+  live?: 'drone1' | 'drone2' | 'guard' | 'worker' | 'petekA' | 'petekB' | 'energy' | 'wind'
   links?: { label: string; to: RouteId; block?: string }[]
   ops?: string
 }
@@ -25,7 +25,7 @@ export const PICKS: Record<PickId, PickInfo> = {
   petekA: {
     kicker: 'Petek A · pist 04 ucu',
     title: 'Petek A',
-    text: 'Kâşif-1 ve Bekçi’nin yuvası; nöbetçi direk de burada. Her hücrede otomatik iniş, şarj (%20 → %90, 32 dk) ve iklimlendirme.',
+    text: 'Altıgen hücrelerden oluşan istasyon: Kâşif-1 ve Bekçi’nin yuvası, arkada nöbetçi direk. Her hücrede otomatik iniş, şarj (%20 → %90, 32 dk) ve iklimlendirme; kesik çizgili yuvalar kovanın büyüyebileceği yer.',
     rows: [['Konum', `pist ekseninden ${LAYOUT.stationA.z} m, şeridin dışında`], petekRow(LAYOUT.stationA.z)],
     live: 'petekA',
     links: [
@@ -36,7 +36,7 @@ export const PICKS: Record<PickId, PickInfo> = {
   petekB: {
     kicker: 'Petek B · pist 22 ucu',
     title: 'Petek B',
-    text: 'Kâşif-2, İşçi/Bakıcı ve FOD kutusu burada. Toplanan nesneler sınıf, ağırlık ve konumla kayda geçer.',
+    text: 'Kâşif-2, İşçi/Bakıcı ve sarı FOD kutusu burada. İşçinin topladığı nesneler sınıf, ağırlık ve konumla kayda geçer.',
     rows: [['Konum', `pist ekseninden ${LAYOUT.stationB.z} m, şeridin dışında`], petekRow(LAYOUT.stationB.z)],
     live: 'petekB',
     links: [
@@ -59,6 +59,26 @@ export const PICKS: Record<PickId, PickInfo> = {
     live: 'drone2',
     links: [{ label: 'Hangar’da aç', to: 'hangar', block: 'platformlar' }],
     ops: 'Bu görevi oynat',
+  },
+  guard: {
+    kicker: 'Bekçi · M3TD sınıfı',
+    title: 'Bekçi drone',
+    text: 'Kâşifler pisti tararken aynı anda çit boyunca ya da pistin çevresinde dolaşır; kuşu ve hayvanı hoparlör ve ışıkla uzaklaştırır. Geçtiği yere soluk turuncu feromon izi bırakır.',
+    live: 'guard',
+    links: [
+      { label: 'Kastlar', to: 'kovan', block: 'kastlar' },
+      { label: 'Görevler', to: 'gorevler', block: 'liste' },
+    ],
+  },
+  worker: {
+    kicker: 'İşçi · M350 sınıfı',
+    title: 'İşçi drone',
+    text: 'Kâşifin bildirdiği nesnenin 4 m üstünde asılı kalır, vinçle indirdiği mıknatıs ya da kıskaçla alır ve Petek B’deki FOD kutusuna getirir. Toplama sınırı 1 kg.',
+    live: 'worker',
+    links: [
+      { label: 'Toplama adımları', to: 'gorevler', block: 'toplama' },
+      { label: 'Hangar’da aç', to: 'hangar', block: 'platformlar' },
+    ],
   },
   energy: {
     kicker: 'Enerji adası',

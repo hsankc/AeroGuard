@@ -11,6 +11,10 @@ import { sunTimes } from '../sim/solar'
     çit devriyesi günde 2 kez, pist sağlığı taraması (haftada 1) gün ışığındaki en uygun boşlukta.
   - Rüzgâr 8 m/s'yi aşan saatte görev yapılmaz; denetim bugünkü gibi araçla yapılır.
   - Şarj: istasyonda %20 → %90, 32 dakikada. Her görev sonunda en az %20 batarya kalmalı.
+
+  Kovan (V3): görevler kastlara atanır. Tarama, açılış ve pist sağlığı kâşiflerin (2 drone), çit ve yaban hayatı
+  bekçinin (1 drone). Farklı kastlar aynı anda uçabilir; pist kullanım bandı her kast için geçerlidir.
+  Mini kovanda (v2) bekçi yoktur: bütün görevleri iki kâşif sırayla uçar.
 */
 
 export const MIN = 60
@@ -26,6 +30,8 @@ export const RESERVE = 20
 export type MoveKind = 'arr' | 'dep'
 export type Movement = { id: string; kind: MoveKind; planned: number; delay: number; label: string }
 export type TaskType = 'opening' | 'fod' | 'wildlife' | 'health' | 'fence'
+export type HiveMode = 'mini' | 'ckz'
+export type Caste = 'scout' | 'guard'
 export type TaskStatus = 'ok' | 'wind' | 'nowindow' | 'battery'
 export type Task = {
   id: string
@@ -36,6 +42,8 @@ export type Task = {
   reason?: string
   movementId?: string
   label: string
+  /** görevi uçan kast */
+  caste: Caste
 }
 export type Block = { start: number; end: number; movementId: string }
 export type BatteryPoint = [number, number]
@@ -49,6 +57,30 @@ export const TASK_SPEC: Record<TaskType, { duration: number; battery: number; en
   health: { duration: 32 * MIN, battery: 72, energyKwh: 0.09, name: 'Pist sağlığı taraması' },
   // çevre çiti boyunca, her drone çitin yarısı (≈3,8 km), 10 m/s
   fence: { duration: 12 * MIN, battery: 30, energyKwh: 0.05, name: 'Çit devriyesi' },
+}
+
+/** Kovanda görevin kastı */
+export const TASK_CASTE: Record<TaskType, Caste> = { opening: 'scout', fod: 'scout', health: 'scout', fence: 'guard', wildlife: 'guard' }
+export const CASTE_NAME: Record<Caste, string> = { scout: 'kâşif', guard: 'bekçi' }
+export const CASTE_DRONES: Record<Caste, number> = { scout: 2, guard: 1 }
+
+/*
+  Bekçi görevleri tek drone'la: çitin tamamı (≈7,4 km, 10 m/s) ve pistin iki yanı birlikte (≈5 km, 8 m/s).
+  Süre kalkış, transit, iniş ve kapak dahil (tasarım tahmini).
+*/
+const GUARD_SPEC: Partial<Record<TaskType, { duration: number; battery: number; energyKwh: number }>> = {
+  fence: { duration: 15 * MIN, battery: 36, energyKwh: 0.05 },
+  wildlife: { duration: 13 * MIN, battery: 30, energyKwh: 0.04 },
+}
+
+export function casteOf(type: TaskType, hive: HiveMode): Caste {
+  return hive === 'ckz' ? TASK_CASTE[type] : 'scout'
+}
+
+/** Görevin süre, batarya ve enerji değerleri (kovan boyuna göre) */
+export function specFor(type: TaskType, hive: HiveMode) {
+  const g = hive === 'ckz' ? GUARD_SPEC[type] : undefined
+  return g ? { ...TASK_SPEC[type], ...g } : TASK_SPEC[type]
 }
 
 export const CKZ_SCHEDULE: Movement[] = [
@@ -82,12 +114,14 @@ export function sawSchedule(): Movement[] {
 
 export const actual = (m: Movement) => m.planned + m.delay
 
-export type PlanInput = { movements: Movement[]; wind: number[]; dayOfYear: number; healthDay: boolean }
+export type PlanInput = { movements: Movement[]; wind: number[]; dayOfYear: number; healthDay: boolean; hive?: HiveMode }
 
 export type PlanResult = {
   tasks: Task[]
   blocks: Block[]
-  battery: Record<1 | 2, BatteryPoint[]>
+  /** kast başına batarya eğrisi (aynı kasttaki drone'lar aynı görevleri uçar) */
+  battery: Partial<Record<Caste, BatteryPoint[]>>
+  hive: HiveMode
   sunrise: number
   sunset: number
   stats: {
@@ -99,6 +133,8 @@ export type PlanResult = {
     vehicle: number
     fodPlanned: number
     fodDone: number
+    /** drone başına sorti, kast kast */
+    byCaste: Partial<Record<Caste, number>>
   }
 }
 
@@ -109,23 +145,26 @@ function maxWind(wind: number[], s: number, e: number) {
   return m
 }
 
-/** Batarya benzetimi: başarısız görev varsa false, yoksa her drone için (zaman, %) noktaları. */
-export function simulateBattery(tasks: Task[]): Record<1 | 2, BatteryPoint[]> | null {
-  const flown = tasks.filter((t) => t.status === 'ok').sort((a, b) => a.start - b.start)
-  const series: Record<1 | 2, BatteryPoint[]> = { 1: [[DAY_START, 100]], 2: [[DAY_START, 100]] }
-  for (const id of [1, 2] as const) {
+/** Batarya benzetimi (kast başına): başarısız görev varsa null, yoksa her kast için (zaman, %) noktaları. */
+export function simulateBattery(tasks: Task[], hive: HiveMode = 'ckz'): Partial<Record<Caste, BatteryPoint[]>> | null {
+  const castes: Caste[] = hive === 'ckz' ? ['scout', 'guard'] : ['scout']
+  const series: Partial<Record<Caste, BatteryPoint[]>> = {}
+  for (const c of castes) {
+    const flown = tasks.filter((t) => t.status === 'ok' && t.caste === c).sort((a, b) => a.start - b.start)
+    const pts: BatteryPoint[] = [[DAY_START, 100]]
     let level = 100
     let t = DAY_START
     for (const task of flown) {
       level = Math.min(100, level + (CHARGE_PER_MIN * (task.start - t)) / MIN)
-      series[id].push([task.start, level])
-      const cons = TASK_SPEC[task.type].battery
+      pts.push([task.start, level])
+      const cons = specFor(task.type, hive).battery
       if (level - cons < RESERVE - 1e-6) return null
       level -= cons
       t = task.end
-      series[id].push([task.end, level])
+      pts.push([task.end, level])
     }
-    series[id].push([DAY_END, Math.min(100, level + (CHARGE_PER_MIN * (DAY_END - t)) / MIN)])
+    pts.push([DAY_END, Math.min(100, level + (CHARGE_PER_MIN * (DAY_END - t)) / MIN)])
+    series[c] = pts
   }
   return series
 }
@@ -136,11 +175,13 @@ export function planDay(input: PlanInput): PlanResult {
   const blocks: Block[] = moves.map((m) => ({ start: actual(m) - BUFFER, end: actual(m) + RUNWAY_AFTER, movementId: m.id }))
   const tasks: Task[] = []
   const busy = moves.length > 60
+  const hive = input.hive ?? 'ckz'
 
-  const free = (s: number, e: number, margin = 2 * MIN) => {
+  // pist bandı her kast için; görev çakışması yalnızca aynı kastın drone'ları arasında
+  const free = (s: number, e: number, caste: Caste, margin = 2 * MIN) => {
     if (s < DAY_START || e > DAY_END) return false
     for (const b of blocks) if (overlaps(s - margin, e + margin, b.start, b.end)) return false
-    for (const t of tasks) if (overlaps(s - margin, e + margin, t.start, t.end)) return false
+    for (const t of tasks) if (t.caste === caste && overlaps(s - margin, e + margin, t.start, t.end)) return false
     return true
   }
 
@@ -165,6 +206,7 @@ export function planDay(input: PlanInput): PlanResult {
         status: 'nowindow',
         movementId: m.id,
         label,
+        caste: 'scout',
         reason: `Önceki hareketten yalnızca ${gap} dk sonra; tarama için ≈18 dk gerekir. Pist araçla denetlenir.`,
       })
       return
@@ -178,6 +220,7 @@ export function planDay(input: PlanInput): PlanResult {
       status: w > WIND_LIMIT ? 'wind' : 'ok',
       movementId: m.id,
       label,
+      caste: 'scout',
       reason: w > WIND_LIMIT ? `Rüzgâr ${w.toFixed(1).replace('.', ',')} m/s, sınır 8 m/s. Pist araçla denetlenir.` : undefined,
     })
   })
@@ -191,7 +234,8 @@ export function planDay(input: PlanInput): PlanResult {
     range: number,
     window?: [number, number],
   ) => {
-    const dur = TASK_SPEC[type].duration
+    const dur = specFor(type, hive).duration
+    const caste = casteOf(type, hive)
     const step = 5 * MIN
     let windyFallback: number | null = null
     for (let k = 0; k <= range / step; k++) {
@@ -199,13 +243,13 @@ export function planDay(input: PlanInput): PlanResult {
         const s = Math.round((preferred + sign * k * step) / MIN) * MIN
         const e = s + dur
         if (window && (s < window[0] || e > window[1])) continue
-        if (!free(s, e)) continue
+        if (!free(s, e, caste)) continue
         if (maxWind(input.wind, s, e) > WIND_LIMIT) {
           windyFallback ??= s
           continue
         }
-        const candidate: Task = { id, type, start: s, end: e, status: 'ok', label }
-        if (!simulateBattery([...tasks, candidate])) continue
+        const candidate: Task = { id, type, start: s, end: e, status: 'ok', label, caste }
+        if (!simulateBattery([...tasks, candidate], hive)) continue
         tasks.push(candidate)
         return
       }
@@ -219,6 +263,7 @@ export function planDay(input: PlanInput): PlanResult {
         end: windyFallback + dur,
         status: 'wind',
         label,
+        caste,
         reason: `Uygun her boşlukta rüzgâr 8 m/s üzerinde (${w.toFixed(1).replace('.', ',')} m/s).`,
       })
       return
@@ -230,6 +275,7 @@ export function planDay(input: PlanInput): PlanResult {
       end: preferred + dur,
       status: busy ? 'nowindow' : 'battery',
       label,
+      caste,
       reason: busy ? 'Hareketler arasında yeterli boşluk yok.' : 'Uygun boşluk veya yeterli şarj bulunamadı.',
     })
   }
@@ -257,25 +303,28 @@ export function planDay(input: PlanInput): PlanResult {
   place('fence', 'fence-pm', 22 * 3600 + 30 * MIN, 'Gece', 3 * 3600)
 
   // Şarj yetmeyen sabit görevler (nadiren)
-  let battery = simulateBattery(tasks)
+  let battery = simulateBattery(tasks, hive)
   if (!battery) {
     for (const t of tasks.filter((x) => x.status === 'ok').sort((a, b) => a.start - b.start)) {
       const flown = tasks.filter((x) => x.status === 'ok' && x.start <= t.start)
-      if (!simulateBattery(flown)) {
+      if (!simulateBattery(flown, hive)) {
         t.status = 'battery'
         t.reason = 'Önceki görevden sonra yeterli şarj yok.'
       }
     }
-    battery = simulateBattery(tasks) ?? { 1: [], 2: [] }
+    battery = simulateBattery(tasks, hive) ?? {}
   }
 
   tasks.sort((a, b) => a.start - b.start)
   const done = tasks.filter((t) => t.status === 'ok')
   const fods = tasks.filter((t) => t.type === 'fod' || t.type === 'opening')
+  const byCaste: Partial<Record<Caste, number>> = { scout: done.filter((t) => t.caste === 'scout').length }
+  if (hive === 'ckz') byCaste.guard = done.filter((t) => t.caste === 'guard').length
   return {
     tasks,
     blocks,
     battery,
+    hive,
     sunrise,
     sunset,
     stats: {
@@ -283,10 +332,11 @@ export function planDay(input: PlanInput): PlanResult {
       done: done.length,
       completion: tasks.length ? done.length / tasks.length : 0,
       sorties: done.length,
-      energyKwh: done.reduce((s, t) => s + TASK_SPEC[t.type].energyKwh * 2, 0),
+      energyKwh: done.reduce((s, t) => s + specFor(t.type, hive).energyKwh * CASTE_DRONES[t.caste], 0),
       vehicle: fods.filter((t) => t.status !== 'ok').length,
       fodPlanned: fods.length,
       fodDone: fods.filter((t) => t.status === 'ok').length,
+      byCaste,
     },
   }
 }

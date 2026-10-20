@@ -1,4 +1,4 @@
-import { actual, DAY_END, DAY_START, fmt, TASK_SPEC, type Movement, type PlanResult, type Task, type TaskType } from '../planner/plan'
+import { actual, DAY_END, DAY_START, fmt, TASK_SPEC, type Movement, type PlanResult, type Task } from '../planner/plan'
 import type { LogKind } from './store'
 import { AircraftFleet } from './world/fleet'
 import type { FodField } from './world/fod'
@@ -17,7 +17,7 @@ export type DayHost = {
   mission: Mission
   fod: FodField
   log: (kind: LogKind, text: string) => void
-  launch: (task: TaskType) => void
+  launch: (task: Task) => void
   review: (id: number, status: 'confirmed' | 'rejected') => void
   setTask: (label: string | null) => void
   finish: (summary: string) => void
@@ -34,6 +34,7 @@ export class DayRunner {
   private moves: { t: number; kind: 'arr' | 'dep'; label: string; logged: boolean; dropAt: number; dropped: boolean }[]
   private reviews: { at: number; id: number; status: 'confirmed' | 'rejected' }[] = []
   private current: RunTask | null = null
+  private currentGuard: RunTask | null = null
   private vehicleFor: RunTask | null = null
   finished = false
   stats = { flown: 0, vehicle: 0, detections: 0, confirmed: 0 }
@@ -63,12 +64,26 @@ export class DayRunner {
     this.reviews.push({ at: clock + 120, id, status: isArtifact ? 'rejected' : 'confirmed' })
   }
 
-  /** Görev bittiğinde (drone'lar istasyonda) */
+  private showTask() {
+    const parts = [this.current, this.currentGuard].filter(Boolean).map((t) => `${TASK_SPEC[t!.type].name}: ${t!.label}${t!.caste === 'guard' ? ' (bekçi)' : ''}`)
+    this.host.setTask(parts.length ? parts.join(' · ') : null)
+  }
+
+  /** Ana görev bittiğinde (kâşifler peteğinde) */
   onDocked() {
     if (this.current) {
-      this.host.log('ok', `${TASK_SPEC[this.current.type].name} tamamlandı, drone’lar istasyonda şarjda`)
+      this.host.log('ok', `${TASK_SPEC[this.current.type].name} tamamlandı, kâşifler peteğinde şarjda`)
       this.current = null
-      this.host.setTask(null)
+      this.showTask()
+    }
+  }
+
+  /** Bekçi sortisi bittiğinde */
+  onSortieDone(id: number) {
+    if (id === 3 && this.currentGuard) {
+      this.host.log('ok', `${TASK_SPEC[this.currentGuard.type].name} tamamlandı, bekçi peteğinde şarjda`)
+      this.currentGuard = null
+      this.showTask()
     }
   }
 
@@ -120,14 +135,17 @@ export class DayRunner {
         } else this.host.log('warn', `${fmt(t.start)} ${TASK_SPEC[t.type].name} ertelendi: ${why}.`)
         continue
       }
-      const idle = m.drones.every((d) => !d.active && d.mode === 'docked')
-      if (!idle) continue // önceki görev sürüyor: drone'lar dönünce başlar
+      // aynı kastın önceki görevi sürüyorsa drone'lar dönünce başlar; farklı kastlar aynı anda uçabilir
+      const crew = t.caste === 'guard' ? [m.guard] : m.drones
+      const idle = crew.every((d) => !d.active && d.mode === 'docked')
+      if (!idle) continue
       t.handled = true
-      this.current = t
+      if (t.caste === 'guard') this.currentGuard = t
+      else this.current = t
       this.stats.flown++
-      this.host.setTask(`${TASK_SPEC[t.type].name}: ${t.label}`)
-      this.host.log('tower', `${fmt(clock)} Kule onayı alındı: ${TASK_SPEC[t.type].name} (${t.label})`)
-      this.host.launch(t.type)
+      this.showTask()
+      this.host.log('tower', `${fmt(clock)} Kule onayı alındı: ${TASK_SPEC[t.type].name} (${t.label}${t.caste === 'guard' ? ', bekçi' : ''})`)
+      this.host.launch(t)
     }
 
     if (this.vehicle.update(clock, realT) && this.vehicleFor) {

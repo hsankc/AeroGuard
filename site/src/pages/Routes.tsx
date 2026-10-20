@@ -5,6 +5,7 @@ import type { RouteId } from '../app/router'
 import { Planner } from '../planner/Planner'
 import { Home } from './Home'
 import { HiveAnalogy, HiveCastes, HiveMind, HivePetek, HiveSizes } from '../sections/content/Hive'
+import { HiveBuilder } from '../sections/content/HiveBuilder'
 import { Problem } from '../sections/content/Problem'
 import { Architecture } from '../sections/content/Architecture'
 import { EnergyStory } from '../sections/content/EnergyStory'
@@ -50,6 +51,9 @@ function Kovan() {
       </Block>
       <Block id="boylar" title="Kovan boyları" lead="Kovan trafiğe ve iklime göre büyür; her havalimanı yalnızca ihtiyaç duyduğu hücreyi alır.">
         <HiveSizes />
+      </Block>
+      <Block id="kur" title="Kovanını kur" lead="Hücre ekleyin ya da çıkarın: kurulum, yıllık maliyet, tarama süresi, enerji dengesi ve yetenekler anında değişir.">
+        <HiveBuilder />
       </Block>
       <Block id="zeka" title="Kovan zekâsı" lead="Görevler kastlara atanır, farklı kastlar aynı anda çalışabilir, pist kullanımdayken hiçbir drone uçmaz.">
         <HiveMind />

@@ -16,13 +16,16 @@ function show(title: string, input: Parameters<typeof planDay>[0], verbose = tru
       if (t.end > actual(m) - BUFFER) throw new Error(`TAMPON İHLALİ ${t.id}`)
     }
   }
-  const min = Math.min(...[1, 2].flatMap((d) => r.battery[d as 1 | 2].map((p) => p[1])))
-  console.log('  en düşük batarya %', min.toFixed(1))
+  for (const [c, pts] of Object.entries(r.battery)) console.log(`  en düşük batarya (${c}) %`, Math.min(...pts!.map((p) => p[1])).toFixed(1))
+  // aynı kastın görevleri çakışmaz
+  const flown = r.tasks.filter((x) => x.status === 'ok')
+  for (const a of flown) for (const b of flown) if (a !== b && a.caste === b.caste && a.start < b.end && b.start < a.end) throw new Error(`KAST ÇAKIŞMASI ${a.id} ile ${b.id}`)
   return r
 }
 
-const base = { movements: CKZ_SCHEDULE, wind: defaultWind(), dayOfYear: DEFAULT_DAY_OF_YEAR, healthDay: true }
-show('Çanakkale, temsili gün (pist sağlığı günü)', base)
+const base = { movements: CKZ_SCHEDULE, wind: defaultWind(), dayOfYear: DEFAULT_DAY_OF_YEAR, healthDay: true, hive: 'ckz' as const }
+show('Mini kovan (v2, rapordaki), temsili gün', { ...base, hive: 'mini' })
+show('Çanakkale kovanı, temsili gün (pist sağlığı günü)', base)
 show('08:55 kalkışı 25 dk gecikmeli', { ...base, movements: CKZ_SCHEDULE.map((m) => (m.id === 'm2' ? { ...m, delay: 25 * 60 } : m)) })
 show('Öğleden sonra poyraz', { ...base, wind: WIND_PRESETS[1].wind() })
 show('Sabah fırtınası', { ...base, wind: WIND_PRESETS[2].wind() })

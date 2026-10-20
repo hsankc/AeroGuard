@@ -556,3 +556,33 @@
     margin-left: 0;
   }
 }
+
+/* kast etiketi ve bekçi bataryası (V3) */
+.pc-caste {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 11px;
+  fill: var(--caste-scout);
+}
+
+.pc-caste--guard {
+  fill: var(--caste-guard);
+}
+
+.pc-battery--guard {
+  stroke: var(--caste-guard) !important;
+  stroke-dasharray: 5 3;
+}
+
+.lg-bat {
+  display: inline-block;
+  width: 16px;
+  height: 0;
+  border-top: 2px solid var(--lane-wildlife);
+  vertical-align: middle;
+}
+
+.lg-bat--guard {
+  margin-left: 8px;
+  border-top: 2px dashed var(--caste-guard);
+}

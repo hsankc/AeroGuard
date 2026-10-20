@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent, type KeyboardEvent as RKeyboardEvent } from 'react'
-import { actual, DAY_END, DAY_START, fmt, MIN, RESERVE, SAW_DAILY, TASK_SPEC, WIND_LIMIT, WIND_PRESETS, type Task, type TaskType } from './plan'
+import { actual, CASTE_NAME, casteOf, DAY_END, DAY_START, fmt, MIN, RESERVE, SAW_DAILY, specFor, TASK_SPEC, WIND_LIMIT, WIND_PRESETS, type Task, type TaskType } from './plan'
 import { usePlanner } from './store'
 import { useSim } from '../sim/store'
 import { getEngine } from '../sim/engine'
@@ -8,6 +8,7 @@ import './planner.css'
 /*
   Tarifeye duyarlı planlayıcı: 05:00–24:00 zaman çizelgesi.
   Satır sırası sunumdaki Şekil 3 ile aynı. Her satırın etiketi kimliği taşır; renk ikincil.
+  Satırın altındaki küçük yazı görevi uçan kasttır (Çanakkale kovanında çit ve yaban hayatı bekçinin).
 */
 
 const LANES: { id: 'moves' | 'wind' | TaskType | 'battery'; label: string; h: number }[] = [
@@ -17,7 +18,7 @@ const LANES: { id: 'moves' | 'wind' | TaskType | 'battery'; label: string; h: nu
   { id: 'fence', label: 'Çit devriyesi', h: 38 },
   { id: 'health', label: 'Pist sağlığı', h: 38 },
   { id: 'wildlife', label: 'Yaban hayatı', h: 38 },
-  { id: 'battery', label: 'Drone bataryası', h: 72 },
+  { id: 'battery', label: 'Batarya', h: 72 },
 ]
 const LABEL_W = 132
 const AXIS_H = 26
@@ -49,7 +50,7 @@ function useWidth<T extends HTMLElement>() {
 
 export function Planner() {
   const p = usePlanner()
-  const { plan, movements, wind, airport } = p
+  const { plan, movements, wind, airport, hive } = p
   const busy = airport === 'saw'
   const [wrapRef, W] = useWidth<HTMLDivElement>()
   const [tip, setTip] = useState<Tip | null>(null)
@@ -111,7 +112,9 @@ export function Planner() {
         STATUS_TEXT[t.status] + (t.reason ? `. ${t.reason}` : ''),
         t.label,
         ...(m ? [`Drone’lar ${fmt(t.end)} itibarıyla istasyonda, hareket ${fmt(actual(m))}`] : []),
-        `İki drone, batarya kullanımı ≈%${TASK_SPEC[t.type].battery}`,
+        t.caste === 'guard'
+          ? `Bekçi tek başına, batarya kullanımı ≈%${specFor(t.type, hive).battery}; kâşiflerle aynı anda uçabilir`
+          : `İki kâşif, batarya kullanımı ≈%${specFor(t.type, hive).battery}`,
       ],
     }
   }
@@ -172,6 +175,14 @@ export function Planner() {
             {p.windPreset === 'custom' && <option value="custom">Elle ayarlandı</option>}
           </select>
         </label>
+        <div className="pseg" role="group" aria-label="Kovan boyu">
+          <button type="button" aria-pressed={hive === 'mini'} onClick={() => p.setHive('mini')}>
+            Mini kovan
+          </button>
+          <button type="button" aria-pressed={hive === 'ckz'} onClick={() => p.setHive('ckz')}>
+            Çanakkale kovanı
+          </button>
+        </div>
         <label className="planner__check">
           <input type="checkbox" checked={p.healthDay} onChange={(e) => p.setHealthDay(e.target.checked)} />
           Bugün pist sağlığı günü (haftada 1)
@@ -212,13 +223,24 @@ export function Planner() {
         </div>
         <div>
           <dt>Drone başına sorti</dt>
-          <dd>{s.sorties}</dd>
-          <p>raporda günde 9–10</p>
+          {hive === 'ckz' ? (
+            <>
+              <dd>
+                {s.byCaste.scout ?? 0} + {s.byCaste.guard ?? 0}
+              </dd>
+              <p>kâşif + bekçi; görevler kastlara bölündü</p>
+            </>
+          ) : (
+            <>
+              <dd>{s.sorties}</dd>
+              <p>raporda günde 9–10</p>
+            </>
+          )}
         </div>
         <div>
           <dt>Drone şarj enerjisi</dt>
-          <dd>{s.energyKwh.toFixed(1).replace('.', ',')} kWh</dd>
-          <p>günlük, iki drone</p>
+          <dd>{s.energyKwh.toFixed(2).replace('.', ',')} kWh</dd>
+          <p>{hive === 'ckz' ? 'günlük, iki kâşif ve bekçi' : 'günlük, iki drone'}</p>
         </div>
         <div>
           <dt>Araçla denetlenen hareket</dt>
@@ -257,9 +279,15 @@ export function Planner() {
           {LANES.map((l) => (
             <g key={l.id}>
               <line className="pc-lane" x1={0} x2={W - PAD_R} y1={laneY[l.id].y} y2={laneY[l.id].y} />
-              <text className="pc-label" x={0} y={laneY[l.id].y + laneY[l.id].h / 2 + 5}>
+              <text className="pc-label" x={0} y={laneY[l.id].y + laneY[l.id].h / 2 + (l.id in TYPE_LANE ? 0 : 5)}>
                 {l.label}
               </text>
+              {l.id in TYPE_LANE && (
+                <text className={`pc-caste pc-caste--${casteOf(l.id as TaskType, hive)}`} x={0} y={laneY[l.id].y + laneY[l.id].h / 2 + 13}>
+                  {CASTE_NAME[casteOf(l.id as TaskType, hive)]}
+                  {casteOf(l.id as TaskType, hive) === 'scout' ? ' × 2' : ''}
+                </text>
+              )}
             </g>
           ))}
           <line className="pc-lane" x1={0} x2={W - PAD_R} y1={plotBottom} y2={plotBottom} />
@@ -468,12 +496,14 @@ export function Planner() {
             })
           })()}
 
-          {/* batarya (iki drone aynı görevleri uçtuğu için tek çizgi) */}
+          {/* batarya: kast başına bir çizgi (aynı kasttaki drone'lar aynı görevleri uçar) */}
           {(() => {
             const L = laneY.battery
             const yv = (v: number) => L.y + 8 + (1 - v / 100) * (L.h - 16)
-            const pts = plan.battery[1]
-            const d = pts.length ? pts.map(([t, v], i) => `${i ? 'L' : 'M'}${x(Math.max(DAY_START, t)).toFixed(1)},${yv(v).toFixed(1)}`).join(' ') : ''
+            const line = (pts: [number, number][] | undefined) =>
+              pts?.length ? pts.map(([t, v], i) => `${i ? 'L' : 'M'}${x(Math.max(DAY_START, t)).toFixed(1)},${yv(v).toFixed(1)}`).join(' ') : ''
+            const d = line(plan.battery.scout)
+            const dg = line(plan.battery.guard)
             return (
               <g>
                 <line className="pc-limit pc-limit--soft" x1={LABEL_W} x2={W - PAD_R} y1={yv(RESERVE)} y2={yv(RESERVE)} />
@@ -484,6 +514,7 @@ export function Planner() {
                   %100
                 </text>
                 <path className="pc-battery" d={d} />
+                {dg && <path className="pc-battery pc-battery--guard" d={dg} />}
               </g>
             )
           })()}
@@ -521,6 +552,11 @@ export function Planner() {
         <span>
           <i className="lg-off" /> yapılamayan görev, pist araçla denetlenir
         </span>
+        {hive === 'ckz' && (
+          <span>
+            <i className="lg-bat" /> kâşif bataryası <i className="lg-bat lg-bat--guard" /> bekçi bataryası
+          </span>
+        )}
         <span>
           <i className="lg-night" /> gece
         </span>
@@ -617,6 +653,10 @@ export function Planner() {
         <li>Gecikme bildirildiğinde tarama gerçekleşen saate göre kendiliğinden kayar.</li>
         <li>Rüzgâr 8 m/s’yi aşan saatte drone kalkmaz; o hareketin denetimi bugünkü gibi araçla yapılır.</li>
         <li>Çit devriyesi, pist sağlığı ve yaban hayatı görevleri en yakın uygun boşluğa yerleşir; her görevden sonra en az %20 batarya kalır.</li>
+        <li>
+          Çanakkale kovanında çit ve yaban hayatı bekçinin görevidir: kâşiflerle aynı anda uçabilir, ama pist kullanım bandı her kast için geçerlidir. Mini kovanda bütün görevleri iki kâşif
+          sırayla uçar (rapordaki v2 planı).
+        </li>
       </ul>
     </div>
   )

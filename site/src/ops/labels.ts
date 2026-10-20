@@ -14,7 +14,7 @@ export const PHASE_LABEL: Record<Phase, string> = {
 }
 
 export const MODE_LABEL: Record<DroneMode, string> = {
-  docked: 'İstasyonda',
+  docked: 'Peteğinde',
   lid: 'Kapak hareketi',
   takeoff: 'Kalkış',
   transit: 'Transit',
@@ -24,6 +24,7 @@ export const MODE_LABEL: Record<DroneMode, string> = {
   emergency: 'Acil iniş',
   down: 'Pist dışında, yerde',
   patrol: 'Devriye',
+  pickup: 'Toplama: vinçle alıyor',
 }
 
 export const LOG_LABEL: Record<LogKind, string> = {

@@ -340,7 +340,7 @@
 .ops-coverage__bar span {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--energy), var(--station));
+  background: linear-gradient(90deg, var(--caste-scout), var(--station));
   transition: width 0.2s linear;
 }
 
@@ -558,7 +558,7 @@
 }
 
 .ops-tel tr[data-drone='1'] th {
-  color: var(--energy-hi);
+  color: var(--caste-scout);
 }
 
 .ops-tel tr[data-drone='2'] th {

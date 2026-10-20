@@ -15,7 +15,11 @@ import type { Station } from '../world/station'
   L = şerit aralığı = 28 m × (1 − %20) = 22,4 m. Böylece drone'lar hiçbir anda pist ortasında karşılaşmaz.
 
   Pist sağlığı taraması aynı düzeni 10 m irtifada ve 6 şeritle uçar (14 m iz, 11,2 m aralık, 4 m/s).
-  Çit devriyesinde her drone çitin yarısını, yaban hayatı devriyesinde pistin bir yarısının çevresini dolaşır.
+  Mini kovanda çit devriyesinde her kâşif çitin yarısını, yaban hayatı devriyesinde pistin bir yarısının çevresini dolaşır.
+
+  Kovan (V3): ana görev (faz, rapor) kâşiflerindir. Bekçi ve işçi "sorti" uçar: ana görevin fazını etkilemez,
+  kâşiflerle aynı anda yürüyebilir. Bekçi çitin ya da pistin çevresinin tamamını tek başına dolaşır.
+  İşçi bulunan nesnenin 4 m üstünde asılı kalır, vinçle alır ve Petek B'ye getirir.
 */
 
 const ALT = PARAMS.scan.altitude
@@ -27,11 +31,15 @@ const LAND_SPEED = 1.6
 const LID_TIME = 8
 const PATROL_ALT = 25
 
-type Wp = { p: THREE.Vector3; speed: number; mode: DroneMode; pass?: number; hold?: number; lid?: 'open' | 'close' }
+type Wp = { p: THREE.Vector3; speed: number; mode: DroneMode; pass?: number; hold?: number; lid?: 'open' | 'close'; done?: () => void }
+export type DroneId = 1 | 2 | 3 | 4
+export type Caste = 'scout' | 'guard' | 'worker'
+const PICKUP_HOVER = 4
+const WINCH_TIME = 14
 export type Lane = { x0: number; x1: number; z: number }
 
-/** Bir drone'un şeritleri: yarım pist, x0 → x1 yönlerinde sırayla */
-function lanesFor(id: 1 | 2, zs: number[]): Lane[] {
+/** Bir kâşifin şeritleri: yarım pist, x0 → x1 yönlerinde sırayla */
+function lanesFor(id: DroneId, zs: number[]): Lane[] {
   const H = RWY.half
   return zs.map((z, i) =>
     id === 1 ? (i % 2 === 0 ? { x0: -H, x1: 0, z } : { x0: 0, x1: -H, z }) : i % 2 === 0 ? { x0: 0, x1: H, z } : { x0: H, x1: 0, z },
@@ -52,16 +60,21 @@ export class DroneSim {
   pass = 0
   active = false
   drift: THREE.Vector3 | null = null
+  /** ana görevin değil, bağımsız bir sortinin parçası mı */
+  sortie = false
+  /** işçi: taşıdığı nesne */
+  carrying: FodClass | null = null
 
   constructor(
-    readonly id: 1 | 2,
+    readonly id: DroneId,
+    readonly caste: Caste,
     readonly station: Station,
     readonly fodLanes: Lane[],
-    battery: number,
+    readonly defaultBattery: number,
   ) {
     this.pos = station.padTop.clone()
-    this.battery = battery
-    this.yaw = id === 1 ? 0 : Math.PI
+    this.battery = defaultBattery
+    this.yaw = this.homeYaw
     this.lanes = fodLanes
     this.passProgress = fodLanes.map(() => 0)
   }
@@ -69,14 +82,23 @@ export class DroneSim {
   get airborne() {
     return this.pos.y > this.station.padTop.y + 0.3
   }
+
+  /** peteğinde pist ortasına bakar */
+  get homeYaw() {
+    return this.station.padTop.x < 0 ? 0 : Math.PI
+  }
 }
 
 export type MissionEvents = {
   log: (kind: LogKind, text: string) => void
   phase: (p: Phase, reason?: string) => void
-  detect: (target: DetectTarget, drone: 1 | 2) => void
-  hazard: (x: number, z: number, drone: 1 | 2) => void
+  detect: (target: DetectTarget, drone: DroneId) => void
+  hazard: (x: number, z: number, drone: DroneId) => void
   breach: (on: boolean) => void
+  /** bekçi/işçi sortisi bitti, drone peteğinde */
+  sortieDone?: (id: DroneId) => void
+  /** işçi nesneyi vinçle aldı */
+  picked?: (item: FodItem) => void
 }
 
 export type DetectTarget = { kind: 'fod'; item: FodItem } | { kind: 'artifact'; x: number; z: number }
@@ -94,12 +116,18 @@ export function confidenceFor(cls: FodClass | 'artifact') {
 }
 
 export class Mission {
+  /** kâşifler: ana görevi (tarama, faz, rapor) uçarlar */
   drones: DroneSim[]
+  guard: DroneSim
+  worker: DroneSim
+  /** ana görevi uçan drone'lar (mini kovanda çit ve yaban hayatını da kâşifler uçar) */
+  private crew: DroneSim[]
+  private pickups: FodItem[] = []
   phase: Phase = 'idle'
   task: TaskType = 'fod'
   abortReason: string | null = null
   artifact: { x: number; z: number; detected: boolean } | null = null
-  private pending: { at: number; target: DetectTarget; drone: 1 | 2 }[] = []
+  private pending: { at: number; target: DetectTarget; drone: DroneId }[] = []
   private t = 0
   private phaseTimer = 0
   scanStart: number | null = null
@@ -112,9 +140,17 @@ export class Mission {
   ) {
     const L = laneSpacing()
     this.drones = [
-      new DroneSim(1, stations[0], lanesFor(1, [-L, 0, L]), 96),
-      new DroneSim(2, stations[1], lanesFor(2, [-L, 0, L]), 94),
+      new DroneSim(1, 'scout', stations[0], lanesFor(1, [-L, 0, L]), 96),
+      new DroneSim(2, 'scout', stations[1], lanesFor(2, [-L, 0, L]), 94),
     ]
+    this.guard = new DroneSim(3, 'guard', stations[2], [], 98)
+    this.worker = new DroneSim(4, 'worker', stations[3], [], 97)
+    this.crew = this.drones
+  }
+
+  /** kovandaki bütün drone'lar */
+  get all() {
+    return [...this.drones, this.guard, this.worker]
   }
 
   /** Taramalı görev mi (kamera izi ve tespit açık)? */
@@ -128,9 +164,11 @@ export class Mission {
     this.task = 'fod'
     this.abortReason = null
     this.pending = []
+    this.pickups = []
+    this.crew = this.drones
     this.scanStart = null
     this.dockedAt = null
-    for (const d of this.drones) {
+    for (const d of this.all) {
       d.pos.copy(d.station.padTop)
       d.mode = 'docked'
       d.speed = 0
@@ -142,8 +180,10 @@ export class Mission {
       d.pass = 0
       d.active = false
       d.drift = null
-      d.yaw = d.id === 1 ? 0 : Math.PI
-      d.battery = fullCharge ? 100 : d.id === 1 ? 96 : 94
+      d.sortie = false
+      d.carrying = null
+      d.yaw = d.homeYaw
+      d.battery = fullCharge ? 100 : d.defaultBattery
       d.station.close()
       d.station.setStatus('ready')
     }
@@ -210,12 +250,13 @@ export class Mission {
     return this.bracket(d, body)
   }
 
-  /** Görev türüne göre iki drone'un planını kurar ve başlatır. */
+  /** Görev türüne göre kâşiflerin planını kurar ve başlatır (ana görev). */
   launch(task: TaskType = 'fod') {
     this.task = task
     this.phase = 'flight'
     this.scanStart = this.t
     this.pending = []
+    this.crew = this.drones
     const F = LAYOUT.fence
     const X0 = F.x0 + 15
     const X1 = F.x1 - 15
@@ -275,12 +316,93 @@ export class Mission {
       d.hold = 0
       d.pass = 0
       d.active = true
+      d.sortie = false
       d.station.setStatus('busy')
     }
     if (this.scanning) this.newArtifact()
     else this.artifact = null
     this.ev.phase('flight')
-    this.ev.log('ok', 'Kalkış: İstasyon A ve B kapakları açılıyor')
+    this.ev.log('ok', 'Kalkış: Petek A ve B’de kâşif hücrelerinin kapakları açılıyor')
+  }
+
+  /** Bekçi sortisi: çitin ya da pistin çevresinin tamamını tek başına dolaşır. Ana görevin fazını etkilemez. */
+  sortie(d: DroneSim, task: 'fence' | 'wildlife') {
+    if (d.active) return false
+    const F = LAYOUT.fence
+    const X0 = F.x0 + 15
+    const X1 = F.x1 - 15
+    const Z0 = F.z0 + 15
+    const Z1 = F.z1 - 15
+    const H = RWY.half
+    const hx = d.station.padTop.x
+    const route: [number, number][] =
+      task === 'fence'
+        ? [
+            [hx, Z1],
+            [X0, Z1],
+            [X0, Z0],
+            [X1, Z0],
+            [X1, Z1],
+            [hx, Z1],
+          ]
+        : [
+            [-H, 70],
+            [-H, -70],
+            [H, -70],
+            [H, 70],
+            [-H, 70],
+          ]
+    this.startSortie(d, this.patrolPlan(d, route, task === 'fence' ? 10 : 8))
+    return true
+  }
+
+  private startSortie(d: DroneSim, plan: Wp[]) {
+    d.plan = plan
+    d.idx = 0
+    d.hold = 0
+    d.active = true
+    d.sortie = true
+    d.lanes = []
+    d.passProgress = []
+    d.station.setStatus('busy')
+  }
+
+  /** Nesne toplama isteği: işçi boştaysa hemen kalkar, değilse sıraya girer. */
+  pickup(item: FodItem) {
+    if (this.pickups.includes(item)) return
+    this.pickups.push(item)
+    this.nextPickup()
+  }
+
+  private nextPickup(): void {
+    const w = this.worker
+    if (w.active || w.mode === 'down' || w.battery < 30) return
+    const item = this.pickups.shift()
+    if (!item) return
+    if (!this.fod.items.includes(item)) {
+      this.nextPickup() // başka yoldan kaldırıldı
+      return
+    }
+    const above = new THREE.Vector3(item.x, ALT, item.z)
+    const hover = new THREE.Vector3(item.x, PICKUP_HOVER, item.z)
+    const body: Wp[] = [
+      { p: above, speed: TRANSIT_SPEED, mode: 'transit' },
+      { p: hover, speed: CLIMB_SPEED, mode: 'pickup' },
+      {
+        p: hover.clone(),
+        speed: 0,
+        mode: 'pickup',
+        hold: WINCH_TIME,
+        done: () => {
+          if (!this.fod.items.includes(item)) return
+          w.carrying = item.cls
+          this.fod.remove(item.id)
+          this.ev.picked?.(item)
+        },
+      },
+      { p: above.clone(), speed: CLIMB_SPEED, mode: 'transit' },
+    ]
+    this.startSortie(w, this.bracket(w, body))
   }
 
   private rthPlan(d: DroneSim): Wp[] {
@@ -301,7 +423,8 @@ export class Mission {
     this.abortReason = reason
     this.phase = 'return'
     this.pending = []
-    for (const d of this.drones) {
+    this.pickups = []
+    for (const d of this.all) {
       if (d.mode === 'emergency' || d.mode === 'down') continue
       if (!d.active && d.mode === 'docked') continue
       d.plan = this.rthPlan(d)
@@ -314,7 +437,7 @@ export class Mission {
   }
 
   /** İletişim/güç kaybı: drone en yakın pist dışı acil iniş noktasına iner. */
-  linkLoss(id: 1 | 2) {
+  linkLoss(id: DroneId) {
     const d = this.drones[id - 1]
     if (!d.airborne || d.mode === 'emergency' || d.mode === 'down') return false
     let best = LAYOUT.emergency[0]
@@ -340,7 +463,7 @@ export class Mission {
   }
 
   /** Ani rüzgâr: drone'u yanal olarak sanal sınırın dışına doğru iter. */
-  gust(id: 1 | 2) {
+  gust(id: DroneId) {
     const d = this.drones[id - 1]
     if (!d.airborne || this.phase !== 'flight') return false
     d.drift = new THREE.Vector3(0, 0, d.pos.z >= 0 ? 9 : -9)
@@ -350,7 +473,7 @@ export class Mission {
 
   /** İstasyonda şarj: %20 → %90, 32 dakikada */
   charge(dt: number) {
-    for (const d of this.drones) if (!d.active && d.mode === 'docked') d.battery = Math.min(100, d.battery + (dt / 60) * (70 / 32))
+    for (const d of this.all) if (!d.active && d.mode === 'docked') d.battery = Math.min(100, d.battery + (dt / 60) * (70 / 32))
   }
 
   coverage() {
@@ -392,6 +515,15 @@ export class Mission {
         d.speed = 0
         d.active = false
         d.station.setStatus('ready')
+        if (d.sortie) {
+          d.sortie = false
+          if (d.carrying) {
+            this.ev.log('ok', `İşçi nesneyi Petek B’deki FOD kutusuna bıraktı`)
+            d.carrying = null
+          }
+          this.ev.sortieDone?.(d.id)
+          if (d === this.worker) this.nextPickup()
+        }
       }
       return
     }
@@ -400,13 +532,14 @@ export class Mission {
     if (wp.hold !== undefined) {
       if (d.hold === 0) {
         if (wp.lid === 'open') d.station.open()
-        else d.station.close()
+        else if (wp.lid === 'close') d.station.close()
       }
       d.hold += dt
       d.speed = 0
       if (d.hold >= wp.hold) {
         d.hold = 0
         d.idx++
+        wp.done?.()
       }
       return
     }
@@ -468,9 +601,9 @@ export class Mission {
   update(dt: number) {
     this.t += dt
     this.charge(dt)
-    for (const d of this.drones) {
+    for (const d of this.all) {
       this.stepDrone(d, dt)
-      this.detect(d)
+      if (d.caste === 'scout') this.detect(d)
     }
     if (this.pending.length) {
       const due = this.pending.filter((p) => p.at <= this.t)
@@ -478,13 +611,13 @@ export class Mission {
       for (const p of due) this.ev.detect(p.target, p.drone)
     }
 
-    const allHome = this.drones.every((d) => !d.active && (d.mode === 'docked' || d.mode === 'down'))
+    const allHome = this.crew.every((d) => !d.active && (d.mode === 'docked' || d.mode === 'down'))
     if (this.phase === 'flight' && allHome) {
       this.phase = 'verify'
       this.phaseTimer = 0
       this.dockedAt = this.t
       this.ev.phase('verify')
-      this.ev.log('ok', 'İki drone da istasyonda, kapaklar kapalı: dönüş doğrulandı')
+      this.ev.log('ok', 'İki kâşif de peteğinde, kapaklar kapalı: dönüş doğrulandı')
     } else if (this.phase === 'return' && allHome) {
       this.phase = 'aborted'
       this.ev.phase('aborted', this.abortReason ?? undefined)

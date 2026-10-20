@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { DEFAULT_DAY_OF_YEAR } from '../sim/solar'
-import { CKZ_SCHEDULE, defaultWind, MIN, planDay, sawSchedule, type Movement, type PlanResult } from './plan'
+import { CKZ_SCHEDULE, defaultWind, MIN, planDay, sawSchedule, type HiveMode, type Movement, type PlanResult } from './plan'
 
 /*
   Planlayıcının paylaşılan durumu. Sayfadaki planlayıcı bölümü yazar;
@@ -13,6 +13,8 @@ type State = {
   movements: Movement[]
   wind: number[]
   healthDay: boolean
+  /** kovan boyu: mini (2 kâşif) ya da Çanakkale (2 kâşif + bekçi) */
+  hive: HiveMode
   selectedId: string | null
   windPreset: string
   plan: PlanResult
@@ -30,17 +32,18 @@ type Actions = {
   setWind: (hour: number, value: number) => void
   setWindAll: (wind: number[], preset: string) => void
   setHealthDay: (v: boolean) => void
+  setHive: (h: HiveMode) => void
   reset: () => void
 }
 
 const SNAP = 5 * MIN
 const clampT = (t: number) => Math.min(23 * 3600 + 55 * MIN, Math.max(5 * 3600 + 20 * MIN, Math.round(t / SNAP) * SNAP))
 
-function recompute(s: Pick<State, 'movements' | 'wind' | 'healthDay'>) {
-  return planDay({ movements: s.movements, wind: s.wind, dayOfYear: DEFAULT_DAY_OF_YEAR, healthDay: s.healthDay })
+function recompute(s: Pick<State, 'movements' | 'wind' | 'healthDay' | 'hive'>) {
+  return planDay({ movements: s.movements, wind: s.wind, dayOfYear: DEFAULT_DAY_OF_YEAR, healthDay: s.healthDay, hive: s.hive })
 }
 
-const initial = { movements: CKZ_SCHEDULE, wind: defaultWind(), healthDay: true }
+const initial = { movements: CKZ_SCHEDULE, wind: defaultWind(), healthDay: true, hive: 'ckz' as HiveMode }
 
 let seq = 10
 
@@ -95,6 +98,7 @@ export const usePlanner = create<State & Actions>((set, get) => {
     },
     setWindAll: (wind, preset) => update({ wind, windPreset: preset }),
     setHealthDay: (v) => update({ healthDay: v }),
-    reset: () => update({ airport: 'ckz', ...initial, wind: defaultWind(), windPreset: 'calm', selectedId: 'm2' }),
+    setHive: (h) => update({ hive: h }),
+    reset: () => update({ airport: 'ckz', ...initial, hive: get().hive, wind: defaultWind(), windPreset: 'calm', selectedId: 'm2' }),
   }
 })

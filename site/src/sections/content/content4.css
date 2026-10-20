@@ -1062,3 +1062,230 @@ input[type='range'] {
     animation: none;
   }
 }
+
+/* ---------- Kovanını kur ---------- */
+
+.hb {
+  display: grid;
+  gap: 18px;
+}
+
+.hb__presets {
+  flex-wrap: wrap;
+  justify-self: start;
+}
+
+.hb__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.hb__controls {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: var(--radius-l);
+  font-family: var(--font-ui);
+}
+
+.hb-map {
+  width: 100%;
+  height: auto;
+  font-family: var(--font-ui);
+}
+
+.hb-map__label {
+  fill: var(--ink-3);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.hb-map__cell {
+  fill: rgba(255, 255, 255, 0.03);
+  stroke: rgba(205, 222, 245, 0.22);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+}
+
+.hb-map__cell.is-on {
+  fill: color-mix(in srgb, var(--c) 32%, rgba(10, 20, 36, 0.6));
+  stroke: var(--c);
+  stroke-dasharray: none;
+  stroke-width: 2;
+}
+
+.hb-map__mast {
+  fill: var(--caste-sentinel);
+}
+
+.hb__scouts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--ink-2);
+}
+
+.hb__stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hb__stepper b {
+  min-width: 1.4em;
+  text-align: center;
+  font-size: var(--fs-21);
+  color: var(--caste-scout);
+}
+
+.hb__stepper button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.hb__stepper button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.hb__toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.hb__toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--honey);
+}
+
+.hb__toggle.is-disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.hb__pv {
+  display: grid;
+  gap: 4px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+}
+
+.hb__pv b {
+  color: var(--ink);
+}
+
+.hb__out {
+  display: grid;
+  gap: 14px;
+}
+
+.hb__warn {
+  color: #ffb36b;
+}
+
+.hb__parts {
+  display: grid;
+  margin: 4px 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+}
+
+.hb__parts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  border-top: 1px solid var(--line);
+}
+
+.hb__parts dt {
+  color: var(--ink-3);
+}
+
+.hb__parts dd {
+  margin: 0;
+}
+
+.hb__caps {
+  padding: 16px 18px;
+  border-radius: var(--radius-l);
+}
+
+.hb__caps ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 20px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-ui);
+}
+
+.hb__caps li {
+  display: grid;
+  grid-template-columns: 1.4em 1fr;
+  color: var(--ink-3);
+}
+
+.hb__caps li.is-on {
+  color: var(--ink);
+}
+
+.hb__caps li.is-on > span:first-child {
+  color: var(--caste-worker);
+  font-weight: 700;
+}
+
+.hb__caps small {
+  display: block;
+  color: var(--ink-3);
+  font-size: var(--fs-12);
+}
+
+.hb__items summary {
+  color: var(--ink-2);
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+.hb__items dl {
+  display: grid;
+  margin: 8px 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+}
+
+.hb__items dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+
+.hb__items dt {
+  color: var(--ink-2);
+}
+
+.hb__items dd {
+  margin: 0;
+}
+
+@media (max-width: 860px) {
+  .hb__grid,
+  .hb__caps ul {
+    grid-template-columns: 1fr;
+  }
+}

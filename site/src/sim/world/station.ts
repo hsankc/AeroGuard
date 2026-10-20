@@ -2,10 +2,12 @@ import * as THREE from 'three'
 import { padTexture } from './textures'
 
 /*
-  Kovan istasyonu: otomatik drone kutusu (DJI Dock 2 sınıfı referans alınmıştır, marka/logo kullanılmaz).
-  Görünürlük için gerçek boyutun ≈2,5 katı modellenmiştir.
+  Petek hücresindeki otomatik drone istasyonu (DJI Dock 2 sınıfı referans alınmıştır, marka/logo kullanılmaz).
+  Görünürlük için gerçek boyutun ≈2,5 katı modellenmiştir. Taban altıgen: hücreler petek gibi yan yana dizilir.
 */
 export const STATION_SCALE = 2.5
+/** Altıgen hücrenin çevrel yarıçapı (m, sahne ölçeği) */
+export const CELL_R = 3
 const W = 1.2 // gövde genişliği (x)
 const D = 0.95 // derinlik (z)
 const H = 0.55 // gövde yüksekliği
@@ -31,8 +33,8 @@ export class Station {
     const dark = new THREE.MeshStandardMaterial({ color: '#3a4048', roughness: 0.6 })
     const acc = new THREE.MeshStandardMaterial({ color: accent, roughness: 0.5 })
 
-    // beton taban
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.25, 4.5), new THREE.MeshStandardMaterial({ color: '#a9aca8', roughness: 1 }))
+    // altıgen beton taban (sivri uçlar ±z yönünde: komşu hücreler x boyunca dizilir)
+    const slab = new THREE.Mesh(new THREE.CylinderGeometry(CELL_R, CELL_R, 0.25, 6), new THREE.MeshStandardMaterial({ color: '#a9aca8', roughness: 1 }))
     slab.position.y = 0.125
     slab.receiveShadow = true
     this.group.add(slab)

@@ -39,6 +39,7 @@ export const PAGES: PageMeta[] = [
       { id: 'benzetme', label: 'Arı kovanından ne aldık' },
       { id: 'petek', label: 'Petek istasyonu' },
       { id: 'boylar', label: 'Kovan boyları' },
+      { id: 'kur', label: 'Kovanını kur' },
       { id: 'zeka', label: 'Kovan zekâsı' },
     ],
   },

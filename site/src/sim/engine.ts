@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { PARAMS } from '../data/facts'
-import { confidenceFor, Mission, type DetectTarget } from './mission/mission'
+import { confidenceFor, Mission, type DetectTarget, type DroneId } from './mission/mission'
 import { useSim, fmtClock, type CameraMode, type Check, type Detection, type Fault, type FodClass, type LogKind, type PickId, type Quality } from './store'
 import { buildAirliner, buildHelicopter } from './world/aircraft'
 import { buildAirfield, type Airfield } from './world/airfield'
@@ -12,8 +12,11 @@ import { describePosition, footprint, LAYOUT, RWY, SCAN_HALF_WIDTH } from './wor
 import { buildEmergencyMarks, Geofence } from './world/markers'
 import { SkySystem } from './world/sky'
 import { Station } from './world/station'
+import { Petek } from './world/petek'
+import { PheromoneLayer } from './world/pheromone'
+import { glowTexture } from './world/textures'
 import { usePlanner } from '../planner/store'
-import { actual, CKZ_SCHEDULE, DAY_START, type TaskType } from '../planner/plan'
+import { actual, CKZ_SCHEDULE, DAY_START, type Task } from '../planner/plan'
 import { DayRunner } from './day'
 import type { Station as CamStation } from '../app/pages'
 import { PostFx } from './post'
@@ -54,7 +57,8 @@ export function nextWindow(clock: number) {
   return null
 }
 
-const COLORS = { 1: '#3e9b37', 2: '#1478c8' } as const
+/** Drone renkleri kast rengindedir: iki kâşif mavinin iki tonu, bekçi turuncu, işçi yeşil */
+const COLORS: Record<DroneId, string> = { 1: '#5aaaf0', 2: '#1478c8', 3: '#f08a4b', 4: '#72c766' }
 
 type Mode = 'hero' | 'ops' | 'explore'
 
@@ -87,6 +91,9 @@ export class Engine {
   private sky: SkySystem
   private airfield: Airfield
   stations: Station[]
+  peteks: Petek[]
+  pheromone = new PheromoneLayer(glowTexture())
+  private trailFrom = new THREE.Vector3()
   private energy: EnergyIsland
   private droneVis: DroneVisual[]
   private strips: CoverageStrips[]
@@ -163,11 +170,18 @@ export class Engine {
     this.airfield = buildAirfield()
     this.scene.add(this.airfield.group)
 
+    // iki petek, her birinde iki dolu hücre: [Kâşif-1, Kâşif-2, Bekçi, İşçi] sırasıyla istasyonlar
+    this.peteks = [new Petek('A', LAYOUT.stationA.x, LAYOUT.stationA.z), new Petek('B', LAYOUT.stationB.x, LAYOUT.stationB.z)]
+    this.peteks.forEach((p) => this.scene.add(p.group))
+    const [pa, pb] = this.peteks
     this.stations = [
-      new Station('A', COLORS[1], LAYOUT.stationA.x, LAYOUT.stationA.z),
-      new Station('B', COLORS[2], LAYOUT.stationB.x, LAYOUT.stationB.z),
+      new Station('A', COLORS[1], pa.cell(0).x, pa.cell(0).z),
+      new Station('B', COLORS[2], pb.cell(0).x, pb.cell(0).z),
+      new Station('A', COLORS[3], pa.cell(1).x, pa.cell(1).z),
+      new Station('B', COLORS[4], pb.cell(1).x, pb.cell(1).z),
     ]
     this.stations.forEach((s) => this.scene.add(s.group))
+    this.scene.add(this.pheromone.group)
     this.energy = new EnergyIsland(LAYOUT.energy.x, LAYOUT.energy.z)
     this.scene.add(this.energy.group)
 
@@ -205,11 +219,12 @@ export class Engine {
         this.geofence.setAlert(on)
         useSim.getState().set({ geofenceAlert: on })
       },
+      sortieDone: (id) => this.day?.onSortieDone(id),
     })
 
-    this.droneVis = [new DroneVisual(1, COLORS[1]), new DroneVisual(2, COLORS[2])]
+    this.droneVis = this.mission.all.map((d) => new DroneVisual(d.id, COLORS[d.id], d.caste))
     this.droneVis.forEach((d) => d.addTo(this.scene))
-    this.strips = this.mission.drones.map((d, i) => new CoverageStrips(i === 0 ? COLORS[1] : COLORS[2], d.lanes, footprint(20).across))
+    this.strips = this.mission.drones.map((d) => new CoverageStrips(COLORS[d.id], d.lanes, footprint(20).across))
     this.strips.forEach((s) => this.scene.add(s.group))
 
     this.thumbRT = new THREE.WebGLRenderTarget(320, 240)
@@ -230,8 +245,11 @@ export class Engine {
     canvas.addEventListener('pointerup', (e) => this.onPointerUp(e))
 
     // keşif modu: seçilebilen nesneler, serbest uçuş kamerası, üzerine gelme
-    this.stations[0].group.userData.pick = 'petekA'
-    this.stations[1].group.userData.pick = 'petekB'
+    for (const st of this.stations) st.group.userData.pick = st.id === 'A' ? 'petekA' : 'petekB'
+    pa.group.userData.pick = 'petekA'
+    pb.group.userData.pick = 'petekB'
+    this.droneVis[2].root.userData.pick = 'guard'
+    this.droneVis[3].root.userData.pick = 'worker'
     this.energy.group.userData.pick = 'energy'
     this.droneVis[0].root.userData.pick = 'drone1'
     this.droneVis[1].root.userData.pick = 'drone2'
@@ -437,6 +455,9 @@ export class Engine {
     this.resetWorld(3)
     useSim.getState().set({ clock: 8 * 3600 + 15 * 60, wind: 5.2 })
     this.mission.launch()
+    // kovan: kâşifler pisti tararken bekçi aynı anda çit boyunca devriye gezer
+    this.mission.sortie(this.mission.guard, 'fence')
+    this.trailFrom.copy(this.mission.guard.pos)
     this.heroWait = 0
     this.geofence.setVisible(this.mode === 'hero' && this.station === 'safety')
   }
@@ -519,7 +540,14 @@ export class Engine {
     if (restore) this.enterOps()
   }
 
-  private launchDayTask(task: TaskType) {
+  private launchDayTask(t: Task) {
+    // bekçi görevleri ana görevden bağımsız sorti olarak uçar (kâşiflerle aynı anda olabilir)
+    if (t.caste === 'guard' && (t.type === 'fence' || t.type === 'wildlife')) {
+      this.mission.sortie(this.mission.guard, t.type)
+      this.trailFrom.copy(this.mission.guard.pos)
+      return
+    }
+    const task = t.type
     this.strips.forEach((s) => s.reset())
     this.geofence.setVisible(task === 'fod' || task === 'opening' || task === 'health')
     this.geofence.setAlert(false)
@@ -538,6 +566,7 @@ export class Engine {
   /** Dünyayı yeni görev için hazırla. */
   private resetWorld(randomObjects: number, keepObjects = false) {
     this.mission.reset()
+    this.pheromone.clear()
     if (!keepObjects) {
       this.fod.clear()
       this.fod.randomize(randomObjects)
@@ -787,7 +816,7 @@ export class Engine {
     }
   }
 
-  private onDetect(target: DetectTarget, drone: 1 | 2) {
+  private onDetect(target: DetectTarget, drone: DroneId) {
     const s = useSim.getState()
     const cls = target.kind === 'fod' ? target.item.cls : 'artifact'
     const x = target.kind === 'fod' ? target.item.x : target.x
@@ -796,7 +825,17 @@ export class Engine {
     const conf = confidenceFor(cls)
     const label = cls === 'artifact' ? 'Olası nesne (koyu iz)' : FOD_LABEL[cls]
     const now = this.simClock ?? s.clock
-    const det: Detection = { id, cls, label, conf, x, z, drone, t: now, status: 'pending', thumb: this.mode === 'ops' ? this.captureThumb(x, z) : undefined }
+    if (target.kind === 'fod') {
+      // feromon: nesne ortak haritaya işlenir
+      this.pheromone.addFod(target.item.id, x, z)
+      if (this.mode !== 'ops') {
+        // sinematik kovan: kâşif konumu işçiye bildirir (sallanma dansı), işçi toplamaya kalkar
+        const scout = this.mission.drones[drone - 1]
+        this.pheromone.waggle(scout.pos.clone(), this.mission.worker.station.padTop.clone().setY(3))
+        this.mission.pickup(target.item)
+      }
+    }
+    const det: Detection = { id, cls, label, conf, x, z, drone: drone as 1 | 2, t: now, status: 'pending', thumb: this.mode === 'ops' ? this.captureThumb(x, z) : undefined }
     if (target.kind === 'fod') this.fod.setStatus(target.item.id, 'pending')
     if (this.mode !== 'ops') return
     s.set({ detections: [...s.detections, det] })
@@ -808,7 +847,7 @@ export class Engine {
     this.addDetLabel(det)
   }
 
-  private onHazard(x: number, z: number, drone: 1 | 2) {
+  private onHazard(x: number, z: number, drone: DroneId) {
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(2.4, 3.2, 40),
       new THREE.MeshBasicMaterial({ color: '#ff3b30', transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }),
@@ -841,8 +880,10 @@ export class Engine {
     const dv = this.mission.drones
     mk('D1', 'sim-label--d1', () => dv[0].pos.clone().add(new THREE.Vector3(0, 3, 0)))
     mk('D2', 'sim-label--d2', () => dv[1].pos.clone().add(new THREE.Vector3(0, 3, 0)))
-    mk('İstasyon A', 'sim-label--place', () => this.stations[0].padTop.clone().setY(6))
-    mk('İstasyon B', 'sim-label--place', () => this.stations[1].padTop.clone().setY(6))
+    mk('Bekçi', 'sim-label--guard', () => this.mission.guard.pos.clone().add(new THREE.Vector3(0, 3, 0)))
+    mk('İşçi', 'sim-label--worker', () => this.mission.worker.pos.clone().add(new THREE.Vector3(0, 3.6, 0)))
+    mk('Petek A', 'sim-label--place', () => new THREE.Vector3(LAYOUT.stationA.x, 8, LAYOUT.stationA.z))
+    mk('Petek B', 'sim-label--place', () => new THREE.Vector3(LAYOUT.stationB.x, 8, LAYOUT.stationB.z))
     mk('Enerji adası', 'sim-label--place', () => new THREE.Vector3(LAYOUT.energy.x, 14, LAYOUT.energy.z))
     mk('Kule', 'sim-label--place', () => new THREE.Vector3(LAYOUT.tower.x, 38, LAYOUT.tower.z))
     mk('Pist 04', 'sim-label--rwy', () => new THREE.Vector3(-RWY.half + 60, 2, 0), 400)
@@ -1224,13 +1265,25 @@ export class Engine {
     this.airfield.update(night, s.wind, s.windDir, this.realT)
     this.energy.update(dtReal, s.wind)
     this.stations.forEach((st) => st.update(live ? dtSim : dtReal, s.wind))
+    this.peteks.forEach((p) => p.update(dtReal))
     this.fod.update(dtReal)
     this.geofence.update(this.realT)
-    this.mission.drones.forEach((d, i) => {
+    this.mission.all.forEach((d, i) => {
       const rotors = d.mode !== 'docked' && d.mode !== 'lid' && d.mode !== 'down'
       this.droneVis[i].update(d.pos, d.yaw, d.speed, rotors, d.mode === 'scan' && this.mission.phase === 'flight', dtReal, night)
-      if (this.mission.task === 'fod' || this.mission.task === 'opening') d.passProgress.forEach((p, k) => this.strips[i].set(k, p))
+      if (d.caste === 'scout' && (this.mission.task === 'fod' || this.mission.task === 'opening')) d.passProgress.forEach((p, k) => this.strips[i].set(k, p))
     })
+    // işçi: asılı kalınca vinç iner, nesneyi alınca kısa kabloyla taşır
+    const w = this.mission.worker
+    const hovering = w.mode === 'pickup' && w.speed < 0.3 && w.pos.y < 6
+    this.droneVis[3].setWinch(hovering && !w.carrying ? w.pos.y - 0.35 : 0, !!w.carrying, live ? dtSim : dtReal)
+    // bekçi: devriye boyunca feromon izi
+    const g = this.mission.guard
+    if (g.mode === 'patrol' && g.pos.distanceTo(this.trailFrom) > 70) {
+      this.pheromone.trail(g.pos.x, g.pos.z)
+      this.trailFrom.copy(g.pos)
+    }
+    this.pheromone.update(dtReal, this.realT, (id) => this.fod.items.some((it) => it.id === id))
     this.hazards.children.forEach((r) => r.scale.setScalar(1 + Math.sin(this.realT * 5) * 0.15))
 
     this.updateCamera(dtReal)
@@ -1284,7 +1337,7 @@ export class Engine {
     this.lastSync = this.realT
     useSim.getState().set({
       drones: this.mission.drones.map((d) => ({
-        id: d.id,
+        id: d.id as 1 | 2,
         mode: d.mode,
         battery: d.battery,
         alt: d.airborne ? d.pos.y : 0,
