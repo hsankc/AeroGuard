@@ -29,6 +29,7 @@ export type DroneMode =
   | 'down'
   | 'patrol'
   | 'pickup'
+  | 'respond'
 
 export type DroneTelemetry = {
   id: 1 | 2
@@ -55,6 +56,9 @@ export type Detection = {
   t: number
   status: 'pending' | 'confirmed' | 'rejected'
   thumb?: string
+  /** işçi ile toplama durumu */
+  pickup?: 'enroute' | 'done' | 'denied'
+  pickupNote?: string
 }
 
 export type LogKind = 'info' | 'ok' | 'warn' | 'alert' | 'tower'
@@ -70,7 +74,7 @@ export type Report = {
   detections: Detection[]
 }
 
-export type Fault = 'adsb' | 'link' | 'geofence' | 'recall'
+export type Fault = 'adsb' | 'link' | 'geofence' | 'recall' | 'gnss' | 'spoof'
 export type CameraMode = 'overview' | 'follow1' | 'follow2' | 'tower'
 export type Quality = 'low' | 'medium' | 'high'
 
@@ -113,6 +117,11 @@ type State = {
   dayMode: boolean
   dayDone: boolean
   dayTask: string | null
+  /** güvenli konum: dışarıdan gelen karıştırma ya da aldatma */
+  gnss: 'jam' | 'spoof' | null
+  /** oynatılan senaryo (acil durum ya da buz haritası) ve sahne saati (simülasyon sn) */
+  scene: string | null
+  sceneT: number
 }
 
 type Actions = {
@@ -162,6 +171,9 @@ export const useSim = create<State & Actions>((set, get) => ({
   dayDone: false,
   dayTask: null,
 
+  gnss: null,
+  scene: null,
+  sceneT: 0,
   set: (p) => set(p),
   pushLog: (kind, text, t) =>
     set((s) => ({ log: [...s.log.slice(-120), { id: ++logSeq, t: t ?? get().clock, kind, text }] })),

@@ -48,6 +48,14 @@ export class PheromoneLayer {
     this.marks.push({ mesh, kind: 'fod', id, age: 0, ttl: Infinity, base: 0.9 })
   }
 
+  /** Kimliksiz kalıcı işaret (kuş kalıntısı, çatlak): sahne bitene kadar atar */
+  mark(x: number, z: number) {
+    const mesh = new THREE.Mesh(this.ring, this.material('fod', 0.9))
+    mesh.position.set(x, 0.3, z)
+    this.group.add(mesh)
+    this.marks.push({ mesh, kind: 'fod', age: 0, ttl: Infinity, base: 0.9 })
+  }
+
   /** Bekçinin devriye izi */
   trail(x: number, z: number) {
     const mesh = new THREE.Mesh(this.small, this.material('trail', 0.5))

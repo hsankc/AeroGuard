@@ -314,6 +314,8 @@ function FaultCard() {
     { id: 'adsb' as const, label: 'ADS-B: yaklaşan hava aracı', desc: 'Tarifede olmayan bir helikopter yaklaşır; görev durur, drone’lar eve döner.', any: true },
     { id: 'link' as const, label: 'İletişim kaybı (D2)', desc: 'Drone pist dışındaki en yakın acil iniş noktasına iner; konumu FOD olarak bildirilir.' },
     { id: 'geofence' as const, label: 'Ani yan rüzgâr (D1)', desc: 'Drone sanal sınırı aşar; otomatik eve dönüş tetiklenir.' },
+    { id: 'gnss' as const, label: 'GNSS karıştırma', desc: 'Çit dışından karıştırma: uçuştan önceyse hiçbir drone kalkmaz; havadaysa konum UWB + görsel + IMU ile sürer.', any: true },
+    { id: 'spoof' as const, label: 'GNSS aldatma (D1)', desc: 'Sahte uydu sinyali: konum kaynakları uyuşmaz, sahte GNSS dışlanır.', any: true },
   ]
   return (
     <section className="ops-card" aria-labelledby="fault-h">
@@ -330,7 +332,7 @@ function FaultCard() {
           </li>
         ))}
       </ul>
-      {!flying && <p className="ops-hint">İletişim kaybı ve yan rüzgâr, drone’lar havadayken verilebilir.</p>}
+      {!flying && <p className="ops-hint">İletişim kaybı ve yan rüzgâr, drone’lar havadayken verilebilir. Karıştırma ve aldatmayı uçuştan önce verirseniz ön kontrolde görürsünüz.</p>}
     </section>
   )
 }
@@ -441,8 +443,23 @@ function Detections() {
                       Yanlış alarm
                     </button>
                   </div>
+                ) : d.status === 'confirmed' ? (
+                  d.pickup === 'enroute' ? (
+                    <p className="ops-dets__status">İşçi yolda: nesnenin 4 m üstünde asılı kalıp vinçle alacak</p>
+                  ) : d.pickup === 'done' ? (
+                    <p className="ops-dets__status">İşçi topladı; FOD kutusunda kayıtlı</p>
+                  ) : d.pickup === 'denied' ? (
+                    <p className="ops-dets__status">Saha ekibi kaldıracak: {d.pickupNote}</p>
+                  ) : (
+                    <div className="ops-row">
+                      <button type="button" className="btn ops-btn ops-btn--sm" onClick={() => e()?.requestPickup(d.id)}>
+                        İşçi ile topla
+                      </button>
+                      <span className="ops-muted">ya da saha ekibi kaldırır</span>
+                    </div>
+                  )
                 ) : (
-                  <p className="ops-dets__status">{d.status === 'confirmed' ? 'Onaylandı, kaldırma ekibi yönlendirildi' : 'Yanlış alarm, eğitim etiketi oldu'}</p>
+                  <p className="ops-dets__status">Yanlış alarm, eğitim etiketi oldu</p>
                 )}
               </div>
             </li>

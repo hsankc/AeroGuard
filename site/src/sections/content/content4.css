@@ -393,6 +393,11 @@ input[type='range'] {
   color: var(--ink-2);
 }
 
+.emer__play {
+  justify-self: start;
+  margin-top: 4px;
+}
+
 /* ---------- Sinyal karıştırma ---------- */
 
 .jam {
@@ -797,6 +802,10 @@ input[type='range'] {
 
 .ice__verdict.is-nogo b {
   color: #ff8798;
+}
+
+.ice__play {
+  justify-self: start;
 }
 
 .ice__fallback {

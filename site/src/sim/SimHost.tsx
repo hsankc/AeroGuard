@@ -14,7 +14,8 @@ export function SimHost({ station }: { station: Station }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const opsOpen = useSim((s) => s.opsOpen)
   const exploreOpen = useSim((s) => s.exploreOpen)
-  const mode = opsOpen ? 'ops' : exploreOpen ? 'explore' : 'hero'
+  const scene = useSim((s) => s.scene)
+  const mode = opsOpen ? 'ops' : scene ? 'scene' : exploreOpen ? 'explore' : 'hero'
   const quality = useSim((s) => s.quality)
   const stationRef = useRef(station)
   stationRef.current = station
@@ -41,7 +42,7 @@ export function SimHost({ station }: { station: Station }) {
       }
       engine.setStation(stationRef.current)
       const s = useSim.getState()
-      engine.setMode(s.opsOpen ? 'ops' : s.exploreOpen ? 'explore' : 'hero')
+      engine.setMode(s.opsOpen ? 'ops' : s.scene ? 'scene' : s.exploreOpen ? 'explore' : 'hero')
       engine.setActive(true)
     }
     start()
@@ -55,6 +56,10 @@ export function SimHost({ station }: { station: Station }) {
   }, [mode])
 
   useEffect(() => {
+    getEngine()?.syncScene()
+  }, [scene])
+
+  useEffect(() => {
     getEngine()?.setStation(station)
   }, [station])
 
@@ -64,7 +69,7 @@ export function SimHost({ station }: { station: Station }) {
 
   return (
     <div
-      className={`sim-host ${opsOpen ? 'sim-host--ops' : ''} ${exploreOpen ? 'sim-host--explore' : ''} ${station === 'hero' || exploreOpen ? '' : 'sim-host--page'}`}
+      className={`sim-host ${opsOpen ? 'sim-host--ops' : ''} ${exploreOpen || scene ? 'sim-host--explore' : ''} ${station === 'hero' || exploreOpen || scene ? '' : 'sim-host--page'}`}
       aria-hidden={mode === 'hero'}
     >
       <canvas ref={ref} className="sim-canvas" />

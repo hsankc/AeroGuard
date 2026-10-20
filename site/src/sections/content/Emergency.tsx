@@ -1,4 +1,6 @@
 import { Fact } from '../../components/Fact'
+import { openScene } from '../../emergency/actions'
+import type { SceneId } from '../../sim/scenario'
 
 /*
   Acil durum: "ilk fark eden kovan". Drone'lar uçak hareketi sırasında yerdedir; pisti nöbetçi kameralar izler.
@@ -30,18 +32,18 @@ export function EmergencyPrinciple() {
 }
 
 const SCENARIOS = [
-  { name: 'İnişte fren veya motor yangını', first: 'Nöbetçi termal', action: 'Sıcak noktayı işaretler; en yakın drone havadan termal görüntü verir', to: 'Kule, itfaiye', critical: true },
-  { name: 'Pist dışına çıkma', first: 'Nöbetçi, iz takibi', action: 'Uçağın konumu; termal kişi sayımı', to: 'Kule, itfaiye, sağlık', critical: true },
-  { name: 'Lastik patlaması ve parçalanma', first: 'Nöbetçi', action: 'Kâşifler hareket sonrası tarama yapar, işçi parçaları toplar', to: 'Kule, saha ekibi' },
-  { name: 'Kuş çarpması bildirimi', first: 'Pilot bildirimi', action: 'Kâşif kalıntıyı arar, bekçi sürüyü uzaklaştırır', to: 'Saha ekibi' },
-  { name: 'Yakıt veya hidrolik sızıntısı', first: 'Termal ve RGB', action: 'Alanı işaretler, büyümesini izler', to: 'Apron, itfaiye', critical: true },
-  { name: 'Çitten izinsiz giriş', first: 'Bekçi devriyesi', action: 'İzler, güvenliği yönlendirir', to: 'Güvenlik' },
-  { name: 'İzinsiz drone', first: 'RF izleyici, Remote ID', action: 'Konum ve yön uyarısı; müdahale etmeyiz', to: 'Kule, güvenlik' },
-  { name: 'Deprem sonrası pist hasarı', first: 'Kule çağrısı', action: 'Şebeke çökse de enerji adasıyla ≈15 dk’da çatlak taraması: yardım uçakları için pistin kullanılabilirliği belgelenir', to: 'Kule, AFAD', critical: true },
-  { name: 'Şebeke kesintisi', first: 'Enerji yönetimi', action: 'Kovan bataryayla çalışmayı sürdürür: Çanakkale kovanında ≈1 gün, mini kovanda ≈1,5 gün', to: 'Teknik birim' },
-  { name: 'Çevrede yangın ve duman', first: 'Bekçi', action: 'Çevre izleme, görüş uyarısı', to: 'Kule' },
-  { name: 'Gece kayıp kişi araması', first: 'Kule çağrısı', action: 'Bekçi ile termal arama', to: 'Güvenlik' },
-  { name: 'Acil iniş beklentisi', first: 'Kule çağrısı', action: 'Pisti önceden tarar, inişten hemen sonra tekrar tarar', to: 'Kule' },
+  { scene: 'fire' as SceneId, name: 'İnişte fren veya motor yangını', first: 'Nöbetçi termal', action: 'Sıcak noktayı işaretler; en yakın drone havadan termal görüntü verir', to: 'Kule, itfaiye', critical: true },
+  { scene: 'excursion' as SceneId, name: 'Pist dışına çıkma', first: 'Nöbetçi, iz takibi', action: 'Uçağın konumu; termal kişi sayımı', to: 'Kule, itfaiye, sağlık', critical: true },
+  { scene: 'tire' as SceneId, name: 'Lastik patlaması ve parçalanma', first: 'Nöbetçi', action: 'Kâşifler hareket sonrası tarama yapar, işçi parçaları toplar', to: 'Kule, saha ekibi' },
+  { scene: 'bird' as SceneId, name: 'Kuş çarpması bildirimi', first: 'Pilot bildirimi', action: 'Kâşif kalıntıyı arar, bekçi sürüyü uzaklaştırır', to: 'Saha ekibi' },
+  { scene: 'leak' as SceneId, name: 'Yakıt veya hidrolik sızıntısı', first: 'Termal ve RGB', action: 'Alanı işaretler, büyümesini izler', to: 'Apron, itfaiye', critical: true },
+  { scene: 'intrusion' as SceneId, name: 'Çitten izinsiz giriş', first: 'Bekçi devriyesi', action: 'İzler, güvenliği yönlendirir', to: 'Güvenlik' },
+  { scene: 'rogue' as SceneId, name: 'İzinsiz drone', first: 'RF izleyici, Remote ID', action: 'Konum ve yön uyarısı; müdahale etmeyiz', to: 'Kule, güvenlik' },
+  { scene: 'quake' as SceneId, name: 'Deprem sonrası pist hasarı', first: 'Kule çağrısı', action: 'Şebeke çökse de enerji adasıyla ≈15 dk’da çatlak taraması: yardım uçakları için pistin kullanılabilirliği belgelenir', to: 'Kule, AFAD', critical: true },
+  { scene: 'grid' as SceneId, name: 'Şebeke kesintisi', first: 'Enerji yönetimi', action: 'Kovan bataryayla çalışmayı sürdürür: Çanakkale kovanında ≈1 gün, mini kovanda ≈1,5 gün', to: 'Teknik birim' },
+  { scene: 'smoke' as SceneId, name: 'Çevrede yangın ve duman', first: 'Bekçi', action: 'Çevre izleme, görüş uyarısı', to: 'Kule' },
+  { scene: 'search' as SceneId, name: 'Gece kayıp kişi araması', first: 'Kule çağrısı', action: 'Bekçi ile termal arama', to: 'Güvenlik' },
+  { scene: 'landing' as SceneId, name: 'Acil iniş beklentisi', first: 'Kule çağrısı', action: 'Pisti önceden tarar, inişten hemen sonra tekrar tarar', to: 'Kule' },
 ]
 
 export function EmergencyScenarios() {
@@ -65,10 +67,16 @@ export function EmergencyScenarios() {
                 <dd>{s.to}</dd>
               </div>
             </dl>
+            <button type="button" className="pbtn emer__play" onClick={() => openScene(s.scene)}>
+              3D’de saniye saniye oynat
+            </button>
           </li>
         ))}
       </ul>
-      <p className="hangar__note">Senaryoları saniye saniye 3D’de oynatma bu sayfaya eklenecek. Bugün iletişim kaybı ve ADS-B uyarısı operasyon merkezindeki arıza laboratuvarında denenebilir.</p>
+      <p className="hangar__note">
+        Oynatıcıdaki süreler temsilidir: nöbetçi uyarısı için hedef ≤ 10 sn, kule onayından sonra en yakın drone ≈1 dk, itfaiye için ICAO hedefi 3 dk. İletişim kaybı, ADS-B, GNSS karıştırma ve aldatma
+        operasyon merkezindeki arıza laboratuvarında da denenebilir.
+      </p>
     </div>
   )
 }

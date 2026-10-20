@@ -15,6 +15,8 @@ import { Station } from './world/station'
 import { Petek } from './world/petek'
 import { PheromoneLayer } from './world/pheromone'
 import { glowTexture } from './world/textures'
+import { GnssLayer } from './world/gnss'
+import { ScenarioDirector, type SceneId } from './scenario'
 import { usePlanner } from '../planner/store'
 import { actual, CKZ_SCHEDULE, DAY_START, type Task } from '../planner/plan'
 import { DayRunner } from './day'
@@ -60,7 +62,7 @@ export function nextWindow(clock: number) {
 /** Drone renkleri kast rengindedir: iki kâşif mavinin iki tonu, bekçi turuncu, işçi yeşil */
 const COLORS: Record<DroneId, string> = { 1: '#5aaaf0', 2: '#1478c8', 3: '#f08a4b', 4: '#72c766' }
 
-type Mode = 'hero' | 'ops' | 'explore'
+type Mode = 'hero' | 'ops' | 'explore' | 'scene'
 
 type Label = { el: HTMLDivElement; pos: () => THREE.Vector3 | null; minDist?: number }
 
@@ -93,6 +95,11 @@ export class Engine {
   stations: Station[]
   peteks: Petek[]
   pheromone = new PheromoneLayer(glowTexture())
+  gnssLayer = new GnssLayer()
+  private gnssTimer = 0
+  private sceneRoot = new THREE.Group()
+  director: ScenarioDirector
+  private lastSceneSync = 0
   private trailFrom = new THREE.Vector3()
   private energy: EnergyIsland
   private droneVis: DroneVisual[]
@@ -181,7 +188,7 @@ export class Engine {
       new Station('B', COLORS[4], pb.cell(1).x, pb.cell(1).z),
     ]
     this.stations.forEach((s) => this.scene.add(s.group))
-    this.scene.add(this.pheromone.group)
+    this.scene.add(this.pheromone.group, this.gnssLayer.group, this.sceneRoot)
     this.energy = new EnergyIsland(LAYOUT.energy.x, LAYOUT.energy.z)
     this.scene.add(this.energy.group)
 
@@ -220,6 +227,7 @@ export class Engine {
         useSim.getState().set({ geofenceAlert: on })
       },
       sortieDone: (id) => this.day?.onSortieDone(id),
+      picked: (item) => this.onPicked(item.id),
     })
 
     this.droneVis = this.mission.all.map((d) => new DroneVisual(d.id, COLORS[d.id], d.caste))
@@ -259,6 +267,15 @@ export class Engine {
     })
     this.raycaster.camera = this.camera
     this.fly = new FlyControls(this.camera, canvas)
+    this.director = new ScenarioDirector(() => ({
+      root: this.sceneRoot,
+      mission: this.mission,
+      fod: this.fod,
+      pheromone: this.pheromone,
+      peteks: this.peteks,
+      parked: this.parked,
+      setClock: (sec) => useSim.getState().set({ clock: sec, wind: 3.2 }),
+    }))
     canvas.addEventListener('pointermove', (e) => {
       if (this.mode !== 'explore' || e.pointerType === 'touch') return
       this.pointerIn = true
@@ -327,8 +344,14 @@ export class Engine {
     this.mode = mode
     this.fly.enabled = mode === 'explore'
     if (prev === 'explore') this.leaveExplore()
+    if (prev === 'scene') this.director.stop()
+    if (mode === 'scene') {
+      if (prev === 'ops') this.look.copy(this.controls.target)
+      this.startScene()
+      return
+    }
     if (mode === 'hero') {
-      if (prev === 'ops') {
+      if (prev === 'ops' || prev === 'scene') {
         this.look.copy(this.controls.target)
         this.enterHero()
       } else {
@@ -338,7 +361,7 @@ export class Engine {
       }
       this.startCamBlend()
     } else if (mode === 'explore') {
-      if (prev === 'ops') this.enterHero()
+      if (prev === 'ops' || prev === 'scene') this.enterHero()
       this.controls.enabled = false
       this.geofence.setVisible(false)
       this.camera.clearViewOffset()
@@ -346,6 +369,34 @@ export class Engine {
       // başlangıç: 04 ucunun arkasından, petek A, enerji adası ve pist kadrajda
       this.fly.flyTo(new THREE.Vector3(-1480, 110, 520), new THREE.Vector3(-420, 0, 60))
     } else this.enterOps()
+  }
+
+  /* ---------- Senaryo oynatıcısı ---------- */
+
+  /** Sahneyi baştan kur: kovan peteklerinde, pist boş, sahnenin saati */
+  private startScene() {
+    const id = useSim.getState().scene as SceneId | null
+    if (!id) return
+    this.stopDay(false)
+    this.controls.enabled = false
+    this.clearLabels()
+    this.resetWorld(0)
+    this.geofence.setVisible(false)
+    this.heroWait = 0
+    this.camera.clearViewOffset()
+    this.director.start(id)
+    this.startCamBlend()
+    useSim.getState().set({ sceneT: 0 })
+  }
+
+  /** Arayüzden: aynı sahneyi yeniden oynat */
+  restartScene() {
+    if (this.mode === 'scene') this.startScene()
+  }
+
+  /** Sahne değiştiyse (bir senaryodan ötekine geçildi) yeni sahneyi kur */
+  syncScene() {
+    if (this.mode === 'scene' && this.director.id !== useSim.getState().scene) this.startScene()
   }
 
   /* ---------- Keşif modu: seçme, inceleme, Ek 14 ---------- */
@@ -567,6 +618,8 @@ export class Engine {
   private resetWorld(randomObjects: number, keepObjects = false) {
     this.mission.reset()
     this.pheromone.clear()
+    this.gnssLayer.setMode(null)
+    useSim.getState().set({ gnss: null })
     if (!keepObjects) {
       this.fod.clear()
       this.fod.randomize(randomObjects)
@@ -647,6 +700,12 @@ export class Engine {
       },
       { id: 'bat', label: 'Batarya (en az %50)', value: `D1 %${Math.round(d[0].battery)}, D2 %${Math.round(d[1].battery)}`, ok: d.every((x) => x.battery >= 50) },
       { id: 'geo', label: 'Sanal sınır', value: 'Pist şeridi, 30 m tavan, yüklendi', ok: true },
+      {
+        id: 'gnss',
+        label: 'RF/GNSS bütünlüğü',
+        value: s.gnss === 'jam' ? 'Karıştırma: L1/L5 sinyal gücü düştü' : s.gnss === 'spoof' ? 'Aldatma: GNSS konumu UWB ve görsel konumla uyuşmuyor' : 'Temiz; RTK düzeltmesi var',
+        ok: s.gnss === null,
+      },
       { id: 'rwy', label: 'Pist durumu', value: 'Kule: pist kullanımda değil', ok: true },
     ]
   }
@@ -680,7 +739,7 @@ export class Engine {
         this.log('alert', `Ön kontrol başarısız: ${reason}. Görev başlamadı; denetim bugünkü gibi araçla yapılır.`)
         return
       }
-      this.log('ok', 'Ön kontroller tamam: rüzgâr, hava, ADS-B, batarya, sanal sınır')
+      this.log('ok', 'Ön kontroller tamam: rüzgâr, hava, ADS-B, batarya, sanal sınır, RF/GNSS bütünlüğü')
       useSim.getState().set({ startedAt: useSim.getState().clock })
       this.mission.launch()
     }, 1700)
@@ -711,6 +770,7 @@ export class Engine {
       else if (phase === 'awaiting') useSim.getState().set({ checks: this.computeChecks() })
       return
     }
+    if (f === 'gnss' || f === 'spoof') return this.gnssFault(f)
     if (phase !== 'flight') {
       this.log('info', 'Bu arıza yalnızca drone’lar havadayken verilebilir. Önce görevi başlatın.')
       return
@@ -723,6 +783,77 @@ export class Engine {
       const target = this.mission.drones.find((d) => d.id === 1 && d.airborne) ?? this.mission.drones.find((d) => d.airborne)
       if (target) this.mission.gust(target.id)
     }
+  }
+
+  /* ---------- Güvenli konum: karıştırma ve aldatma ---------- */
+
+  private gnssFault(f: 'gnss' | 'spoof') {
+    const s = useSim.getState()
+    const mode = f === 'gnss' ? 'jam' : 'spoof'
+    s.set({ gnss: mode })
+    this.gnssLayer.setMode(mode)
+    this.gnssTimer = mode === 'jam' ? 150 : 90
+    const flying = s.phase === 'flight' || s.phase === 'return'
+    if (mode === 'jam') {
+      this.log('alert', 'RF izleyici: L1/L5 bandında güçlü karıştırma, kaynak çitin dışında. GNSS ve RTK düzeltmesi kayboldu.')
+      if (flying) this.log('ok', 'Konum kaynağı değişti: UWB işaretçileri + görsel konum + IMU. Drone’lar şeritte kalıyor, görev sürüyor; kule bilgilendirildi.')
+      else this.log('warn', 'Ön kontrolde RF/GNSS bütünlüğü kırmızı: karıştırma sürdükçe hiçbir drone kalkmaz.')
+    } else {
+      this.log('alert', 'Bütünlük denetleyicisi: D1’in GNSS konumu UWB ve görsel konumdan ≈38 m sapıyor. Aldatma tespit edildi.')
+      if (flying) this.log('ok', 'Sahte GNSS kaynağı dışlandı; D1 UWB + görsel konum + IMU ile rotasında. Kule ve askerî birim bilgilendirildi.')
+      else this.log('warn', 'Ön kontrolde RF/GNSS bütünlüğü kırmızı: aldatma sürdükçe hiçbir drone kalkmaz.')
+    }
+    if (s.phase === 'awaiting') s.set({ checks: this.computeChecks() })
+  }
+
+  private updateGnss(dtSim: number, dtReal: number) {
+    const s = useSim.getState()
+    if (!s.gnss) return
+    this.gnssTimer -= dtSim
+    const air = this.mission.all.filter((d) => d.airborne).map((d) => d.pos)
+    this.gnssLayer.update(dtReal, air, this.mission.drones[0].airborne ? this.mission.drones[0].pos : null)
+    if (this.gnssTimer <= 0) {
+      const was = s.gnss
+      s.set({ gnss: null })
+      this.gnssLayer.setMode(null)
+      this.log('ok', was === 'jam' ? 'Karıştırma sona erdi: GNSS ve RTK düzeltmesi geri geldi.' : 'Aldatma sinyali kesildi: GNSS konumu yeniden diğer kaynaklarla uyumlu.')
+      if (s.phase === 'awaiting') s.set({ checks: this.computeChecks() })
+    }
+  }
+
+  /* ---------- İşçi ile toplama (operasyon merkezi) ---------- */
+
+  /** Operatör "İşçi ile topla" dedi: kule pencereyi ve koşulları kontrol eder, işçi kalkar. */
+  requestPickup(id: number) {
+    const s = useSim.getState()
+    const det = s.detections.find((d) => d.id === id)
+    const item = this.fod.items.find((it) => it.id === id)
+    if (!det || det.status !== 'confirmed' || det.pickup) return
+    const deny = (note: string) => {
+      s.setDetection(id, { pickup: 'denied', pickupNote: note })
+      this.log('warn', `İşçi ile toplama yapılmadı: ${note}`)
+    }
+    if (!item) return deny('nesne pistte bulunamadı.')
+    if (item.cls === 'tire') return deny('lastik parçası 1 kg / 30 cm sınırını aşabilir; saha ekibi kaldırır.')
+    if (s.wind > PARAMS.drone.windTakeoffLimit) return deny(`rüzgâr ${s.wind.toFixed(1).replace('.', ',')} m/s, sınır 8 m/s; saha ekibi kaldırır.`)
+    const w = this.mission.worker
+    const dist = Math.hypot(item.x - w.station.padTop.x, item.z - w.station.padTop.z)
+    const need = (2 * dist) / 12 + 14 + 70 // gidiş-dönüş, vinç, kalkış ve iniş
+    const next = nextMovement(s.clock)
+    if (next && next.t - s.clock < need + BUFFER_SECONDS) return deny(`${next.label} ${fmtClock(next.t)}; pist penceresi yetmiyor. Saha ekibi kaldırır.`)
+    s.setDetection(id, { pickup: 'enroute' })
+    this.log('tower', `Operatör: ${det.label} için işçi ile toplama. Kule pencereyi onayladı (pist kullanımda değil).`)
+    this.log('info', `İşçi Petek B’den kalkıyor: nesnenin 4 m üstünde asılı kalıp vinçle alacak (≈${Math.round(need / 60)} dk).`)
+    this.pheromone.waggle(new THREE.Vector3(item.x, 3, item.z), w.station.padTop.clone().setY(3))
+    this.mission.pickup(item)
+  }
+
+  private onPicked(id: number) {
+    const s = useSim.getState()
+    if (!s.detections.some((d) => d.id === id)) return
+    s.setDetection(id, { pickup: 'done' })
+    this.log('ok', 'İşçi nesneyi vinçle aldı; Petek B’deki FOD kutusuna götürüyor. Sınıf, konum ve saat kayda geçti.')
+    useSim.getState().set({ fodCount: this.fod.items.length })
   }
 
   reviewDetection(id: number, status: 'confirmed' | 'rejected') {
@@ -832,7 +963,7 @@ export class Engine {
         // sinematik kovan: kâşif konumu işçiye bildirir (sallanma dansı), işçi toplamaya kalkar
         const scout = this.mission.drones[drone - 1]
         this.pheromone.waggle(scout.pos.clone(), this.mission.worker.station.padTop.clone().setY(3))
-        this.mission.pickup(target.item)
+        if (target.item.cls !== 'tire') this.mission.pickup(target.item)
       }
     }
     const det: Detection = { id, cls, label, conf, x, z, drone: drone as 1 | 2, t: now, status: 'pending', thumb: this.mode === 'ops' ? this.captureThumb(x, z) : undefined }
@@ -1091,10 +1222,14 @@ export class Engine {
       this.fly.update(dt)
       return
     }
-    if (this.mode === 'hero') {
+    if (this.mode === 'hero' || this.mode === 'scene') {
       const want = new THREE.Vector3()
       const look = new THREE.Vector3()
-      if (this.station === 'hero' || this.station === 'missions') this.followCam(dt, want, look)
+      const pose = this.mode === 'scene' ? this.director.pose(this.realT) : null
+      if (pose) {
+        want.copy(pose.pos)
+        look.copy(pose.look)
+      } else if (this.station === 'hero' || this.station === 'missions') this.followCam(dt, want, look)
       else {
         const o = ORBITS[this.station]
         const a = o.a + (this.reducedMotion ? 0 : (this.realT - this.stationStart) * o.w)
@@ -1166,7 +1301,7 @@ export class Engine {
     this.realT += dtReal
     const s = useSim.getState()
     const cinematic = this.mode !== 'ops'
-    const speed = cinematic ? 6 : s.paused ? 0 : s.speed
+    const speed = this.mode === 'scene' ? (s.paused ? 0 : (this.director.def?.rate ?? 1)) : cinematic ? 6 : s.paused ? 0 : s.speed
     const dtSim = dtReal * speed
 
     // görev adımları: sabit alt adımlar
@@ -1229,7 +1364,7 @@ export class Engine {
     }
 
     // kahraman (hero) döngüsü: görev bitince yeniden başla
-    if (cinematic && this.heroWait > 0) {
+    if ((this.mode === 'hero' || this.mode === 'explore') && this.heroWait > 0) {
       this.heroWait += dtReal
       if (this.heroWait > 3) this.enterHero()
     }
@@ -1256,6 +1391,8 @@ export class Engine {
         ? this.controls.target.clone()
         : this.mode === 'explore'
           ? this.exploreFocus()
+          : this.mode === 'scene' && this.director.def
+            ? new THREE.Vector3(...this.director.def.focus)
           : this.mode === 'hero' && this.station !== 'hero' && this.station !== 'missions'
             ? this.look.clone()
             : this.mission.drones[0].pos.clone()
@@ -1284,6 +1421,15 @@ export class Engine {
       this.trailFrom.copy(g.pos)
     }
     this.pheromone.update(dtReal, this.realT, (id) => this.fod.items.some((it) => it.id === id))
+    this.updateGnss(live ? dtSim : dtReal, dtReal)
+    if (this.mode === 'scene') {
+      this.director.update(dtSim, this.realT)
+      if (this.realT - this.lastSceneSync > 0.2) {
+        this.lastSceneSync = this.realT
+        const t = this.director.run?.t ?? 0
+        if (Math.abs(t - (s.sceneT ?? 0)) > 0.05) s.set({ sceneT: t })
+      }
+    }
     this.hazards.children.forEach((r) => r.scale.setScalar(1 + Math.sin(this.realT * 5) * 0.15))
 
     this.updateCamera(dtReal)

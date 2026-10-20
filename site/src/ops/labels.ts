@@ -25,6 +25,7 @@ export const MODE_LABEL: Record<DroneMode, string> = {
   down: 'Pist dışında, yerde',
   patrol: 'Devriye',
   pickup: 'Toplama: vinçle alıyor',
+  respond: 'Olay yerinde',
 }
 
 export const LOG_LABEL: Record<LogKind, string> = {

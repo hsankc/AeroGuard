@@ -356,6 +356,45 @@ export class Mission {
     return true
   }
 
+  /**
+    Acil durum sortisi: olay yerinin üstüne gider ve `hold` saniye asılı kalır, sonra peteğine döner.
+    from verilirse drone zaten havadadır (örneğin devriyeden yönlendirilen bekçi).
+  */
+  respond(d: DroneSim, target: THREE.Vector3, alt: number, hold: number, from?: THREE.Vector3) {
+    if (d.active && !from) return false
+    const above = new THREE.Vector3(target.x, alt, target.z)
+    const body: Wp[] = [
+      { p: above, speed: TRANSIT_SPEED, mode: 'transit' },
+      { p: above.clone(), speed: 0, mode: 'respond', hold },
+    ]
+    this.startSortie(d, from ? this.fromAir(d, from, body) : this.bracket(d, body))
+    return true
+  }
+
+  /** Verilen noktaları dolaşan sorti (arama, devriye, haritalama). */
+  route(d: DroneSim, pts: [number, number][], alt: number, speed: number, from?: THREE.Vector3) {
+    if (d.active && !from) return false
+    const body: Wp[] = pts.map(([x, z], i) => ({ p: new THREE.Vector3(x, alt, z), speed: i === 0 ? TRANSIT_SPEED : speed, mode: i === 0 ? 'transit' : 'patrol' }))
+    this.startSortie(d, from ? this.fromAir(d, from, body) : this.bracket(d, body))
+    return true
+  }
+
+  /** Havadan başlayan plan: görev, şerit kapısı, peteğin üstünde kapak açılır, iniş. */
+  private fromAir(d: DroneSim, from: THREE.Vector3, body: Wp[]): Wp[] {
+    d.pos.copy(from)
+    const dock = d.station.padTop.clone()
+    const alt = body[0]?.p.y ?? ALT
+    const above = dock.clone().setY(alt)
+    return [
+      ...body,
+      { p: this.gate(d, alt), speed: TRANSIT_SPEED, mode: 'transit' },
+      { p: above, speed: TRANSIT_SPEED, mode: 'transit' },
+      { p: above.clone(), speed: 0, mode: 'lid', hold: LID_TIME, lid: 'open' },
+      { p: dock, speed: LAND_SPEED, mode: 'landing' },
+      { p: dock.clone(), speed: 0, mode: 'lid', hold: LID_TIME, lid: 'close' },
+    ]
+  }
+
   private startSortie(d: DroneSim, plan: Wp[]) {
     d.plan = plan
     d.idx = 0

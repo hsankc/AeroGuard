@@ -99,7 +99,8 @@ export class SkySystem {
     const fogNight = new THREE.Color('#0d1626')
     this.fog.color.copy(fogDay).lerp(fogGold, golden * 0.8).lerp(fogNight, this.night)
     ;(this.stars.material as THREE.PointsMaterial).opacity = this.night * 0.9
-    renderer.toneMappingExposure = 0.62 + 0.22 * (1 - day) * (1 - this.night) + this.night * 0.25
+    // öğle güneşinde beton ve çim fazla açık kalmasın: tam gündüz pozlaması biraz düşük
+    renderer.toneMappingExposure = 0.56 + 0.06 * (1 - e) + 0.22 * (1 - day) * (1 - this.night) + this.night * 0.25
 
     // ortam haritası: saat 10 dakikadan fazla değişince yeniden üret
     if (Math.abs(clock - this.lastEnvClock) > 600) {

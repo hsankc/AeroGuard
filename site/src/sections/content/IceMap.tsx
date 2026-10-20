@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Fact } from '../../components/Fact'
+import { openScene } from '../../emergency/actions'
 
 /*
   Buz haritası (Bakıcı). Drone sıvı sıkmaz; yalnızca nereye sıkılacağını gösterir.
@@ -148,6 +149,9 @@ export function IceMap() {
           {!v.go && <p className="ice__fallback">Bugünkü gibi ekip gözle ve elle kontrol eder.</p>}
         </div>
       </div>
+      <button type="button" className="btn btn--primary ice__play" onClick={() => openScene('ice')}>
+        Kış sabahını 3D’de oynat
+      </button>
       <p className="hangar__note">
         Neden kırağı: açık ve sakin bir kış sabahında ışınımsal soğumayla park eden uçakta kırağı oluşur, ama havada uçuşu tehlikeye atan aşırı soğumuş su yoktur. Kış pilotu soğuk iklimli bir
         bölgesel havalimanıyla iş birliğiyle yapılacak. Hiperspektral kamera ileride eklenecek bir başlık.
