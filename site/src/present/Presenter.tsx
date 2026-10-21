@@ -6,6 +6,7 @@ import { useSim } from '../sim/store'
 import { openExplore } from '../explore/actions'
 import { openScene } from '../emergency/actions'
 import { STEPS } from './steps'
+import { QR_HOST, QR_URL, QrCode } from './QrCode'
 import './present.css'
 
 /** Sunum modu durumu: null kapalı, sayı adım */
@@ -92,6 +93,15 @@ export function Presenter() {
           ×
         </button>
       </div>
+      {step === STEPS.length - 1 && (
+        <a className="pres__qr glass glass--strong" href={QR_URL} target="_blank" rel="noreferrer">
+          <QrCode size={156} label={t({ tr: 'Sitenin QR kodu', en: 'QR code for the site' })} />
+          <span>
+            <b>{t({ tr: 'Telefonunuzda açın', en: 'Open it on your phone' })}</b>
+            <span className="num">{QR_HOST}</span>
+          </span>
+        </a>
+      )}
       <div className="pres__dots" aria-hidden="true">
         {STEPS.map((_, i) => (
           <span key={i} className={i === step ? 'is-on' : i < step ? 'is-past' : ''} />

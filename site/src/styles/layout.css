@@ -296,6 +296,22 @@ button.tile:hover {
   color: var(--honey);
 }
 
+.site-foot__qr {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.site-foot__qr .qr {
+  flex: none;
+  border-radius: 6px;
+}
+
+.site-foot__qr b {
+  display: block;
+  font-weight: 600;
+}
+
 .site-foot__inner > p:last-child {
   flex-basis: 100%;
   font-size: var(--fs-12);

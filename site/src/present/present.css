@@ -86,6 +86,35 @@
   background: var(--honey);
 }
 
+/* son adım: yayın adresinin QR kodu, şeridin üstünde */
+.pres__qr {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px 12px 12px;
+  border-radius: var(--radius-l);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.pres__qr .qr {
+  display: block;
+  border-radius: 8px;
+}
+
+.pres__qr b {
+  display: block;
+  font-size: var(--fs-18);
+}
+
+.pres__qr .num {
+  color: var(--honey);
+  font-size: var(--fs-14);
+}
+
 /* şeridin altında kalmasın */
 body.presenting .shud__bar,
 body.presenting .xhud__card {
@@ -111,6 +140,10 @@ body.presenting .site-foot {
   }
   .pres__text p {
     display: none;
+  }
+  .pres__qr {
+    left: 0;
+    right: auto;
   }
   body.presenting .shud__bar,
   body.presenting .xhud__card {

@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { LangProvider } from './i18n'
-import { EN } from './i18n/en'
+import { LangProvider, useTx } from './i18n'
 import { GlassNav } from './app/GlassNav'
 import { SiteFoot } from './app/SiteFoot'
 import { pageById } from './app/pages'
@@ -26,11 +25,6 @@ export default function App() {
     document.body.classList.toggle('ops-open', opsOpen)
   }, [opsOpen])
 
-  useEffect(() => {
-    const en = document.documentElement.lang === 'en'
-    document.title = route.id === 'home' ? 'AERO-GUARD' : `${en ? (EN[meta.nav] ?? meta.nav) : meta.nav} · AERO-GUARD`
-  }, [route.id, meta.nav])
-
   // yeni sayfa başa açılır; blok verildiyse o bloğa kaydırılır (efekt DOM güncellendikten sonra çalışır)
   useEffect(() => {
     scrollToBlock(route.block)
@@ -38,6 +32,7 @@ export default function App() {
 
   return (
     <LangProvider>
+      <DocTitle home={route.id === 'home'} nav={meta.nav} />
       <SimHost station={meta.station} />
       <GlassNav current={route.id} />
       <div key={route.id} className="route">
@@ -63,4 +58,13 @@ export default function App() {
       )}
     </LangProvider>
   )
+}
+
+/** Sekme başlığı seçili dilde */
+function DocTitle({ home, nav }: { home: boolean; nav: string }) {
+  const tx = useTx()
+  useEffect(() => {
+    document.title = home ? 'AERO-GUARD' : `${tx(nav)} · AERO-GUARD`
+  }, [home, nav, tx])
+  return null
 }

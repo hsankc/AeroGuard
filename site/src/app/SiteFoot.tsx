@@ -2,6 +2,7 @@ import { PAGES } from './pages'
 import { href } from './router'
 import { useUi } from '../components/uiStore'
 import { useTx } from '../i18n'
+import { QR_HOST, QR_URL, QrCode } from '../present/QrCode'
 
 export function SiteFoot() {
   const tx = useTx()
@@ -21,6 +22,13 @@ export function SiteFoot() {
             {tx('Varsayımlar')}
           </button>
         </nav>
+        <a className="site-foot__qr" href={QR_URL}>
+          <QrCode size={84} label={tx('Sitenin QR kodu')} />
+          <span>
+            {tx('Telefonda aç')}
+            <b className="num">{QR_HOST}</b>
+          </span>
+        </a>
         <p>{tx('3D sahne ve simülasyonlar temsilidir. Rakamlar ön tasarım tahminidir; her birinin varsayımı Varsayımlar panelinde.')}</p>
       </div>
     </footer>

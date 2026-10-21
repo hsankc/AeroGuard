@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { EN } from './en'
 
 export type Lang = 'tr' | 'en'
@@ -23,13 +23,16 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l)
-    document.documentElement.lang = l
     try {
       localStorage.setItem('ag-lang', l)
     } catch {
       /* yok say */
     }
   }, [])
+
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
 
   // İngilizce metni henüz yazılmamış içerik Türkçe gösterilir.
   const t = useCallback((text: Text) => (lang === 'en' && text.en ? text.en : text.tr), [lang])

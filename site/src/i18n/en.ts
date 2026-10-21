@@ -197,4 +197,6 @@ export const EN: Record<string, string> = {
     'Detailed text on this page is in Turkish; headings, figures and the 3D demos are bilingual.',
   '3D sahne ve simülasyonlar temsilidir. Rakamlar ön tasarım tahminidir; her birinin varsayımı Varsayımlar panelinde.':
     '3D scenes and simulations are representative. Figures are preliminary design estimates; each one’s assumption is in the Assumptions panel.',
+  'Sitenin QR kodu': 'QR code for the site',
+  'Telefonda aç': 'Open on your phone',
 }
