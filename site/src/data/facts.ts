@@ -216,9 +216,9 @@ export const FACTS = {
     note: '115 Wh bataryanın ≈%25–30’u, şarj kaybı dahil.',
   },
   leadTime: {
-    value: '≈15 dk',
-    label: 'Ticari hareketten önce tarama',
-    note: 'Pencere, hareketten en az 5 dk önce kapanır; drone’lar istasyonda olur.',
+    value: '18 dk',
+    label: 'Taramanın ticari hareketten önce başladığı süre',
+    note: 'Tarama ≈12 dk sürer ve hareketten ≈6 dk önce biter; pencere hareketten en az 5 dk önce kapanır, drone’lar peteklerindedir.',
   },
   sortiesPerDay: {
     value: '9–10',
@@ -248,14 +248,14 @@ export const FACTS = {
   geofence: {
     value: '30 m',
     label: 'Sanal sınır tavanı',
-    note: 'Drone pist şeridi ve petek koridorları içinde, 30 m’nin altında kalır; aşım otomatik eve dönüşü tetikler.',
+    note: 'Her drone görev alanında (pist şeridi, çit hattı, apron) ve petek koridorlarında, 30 m’nin altında kalır; aşım otomatik eve dönüşü tetikler.',
   },
 
   /* Enerji */
   pv: {
     value: '4 kWp',
-    label: 'Güneş paneli',
-    note: '≈1.350 kWh/kWp·yıl (temkinli) → ≈5.400 kWh/yıl.',
+    label: 'Güneş paneli, mini kovan',
+    note: '≈1.350 kWh/kWp·yıl (temkinli) → ≈5.400 kWh/yıl. Çanakkale kovanında 6 kWp → ≈8.100 kWh/yıl.',
   },
   turbine: {
     value: '3 kW',

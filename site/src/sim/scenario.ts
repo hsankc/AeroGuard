@@ -7,6 +7,9 @@ import { buildAirliner } from './world/aircraft'
 import { DroneVisual } from './world/drone'
 import { AlertLink, cracks, Fire, Flock, IceZones, Person, Puddle, Responder, RfWaves, type Effect } from './world/effects'
 import { LAYOUT, RWY } from './world/layout'
+import { sunDirection } from './world/sky'
+import { glowTexture } from './world/textures'
+import { DEFAULT_DAY_OF_YEAR, sunPosition } from './solar'
 
 /*
   Senaryo yönetmeni: 12 acil durum senaryosu ve kış sabahı buz haritası, saniye saniye.
@@ -27,7 +30,12 @@ export type SceneCtx = {
   peteks: Petek[]
   parked: THREE.Group
   setClock: (sec: number) => void
+  /** from'dan to'ya görüş açık mı: hedefin margin metre yakınındaki ve hedefi içeren yapılar sayılmaz */
+  clearView?: (from: THREE.Vector3, to: THREE.Vector3, margin: number) => boolean
 }
+
+/** Kameranın yörünge dilimi: tam tur ya da engelsiz bir yay üzerinde git-gel */
+export type SceneArc = { mid: number; half: number; full: boolean; radius: number; height: number }
 
 type SceneDef = {
   title: string
@@ -196,7 +204,12 @@ export const SCENES: Record<SceneId, SceneDef> = {
       { t: 4, text: 'Petek A nöbetçi direği parçalanmayı gördü.', kind: 'alert', run: (r) => r.alert(r.mast(V(-300, 0, 0)), V(-290, 1, 0)) },
       { t: 9, text: 'Kule uyarıldı; sonraki harekete kadar pist kapatıldı.', run: (r) => r.alert(TOWER_TOP, V(-290, 1, 0), 30, '#f6b93b') },
       { t: 15, text: 'Kâşifler hareket sonrası taramaya kalktı.', run: (r) => r.c.mission.launch('fod') },
-      { t: 380, text: 'Kâşif konumu işçiye bildirdi (sallanma dansı): işçi küçük parçaları topluyor; büyük lastik parçaları saha ekibine.', kind: 'ok' },
+      {
+        t: 380,
+        text: 'Kâşif konumu işçiye bildirdi (sallanma dansı): işçi küçük parçaları topluyor; büyük lastik parçaları saha ekibine.',
+        kind: 'ok',
+        run: (r) => r.c.fod.items.filter((i) => i.cls === 'bolt' || i.cls === 'plastic').forEach((i) => r.c.mission.pickup(i)),
+      },
       { t: 760, text: 'Tarama bitti: rapor kuleye. Pist, saha ekibi büyük parçaları kaldırınca açılır.', kind: 'ok' },
     ],
   },
@@ -205,7 +218,7 @@ export const SCENES: Record<SceneId, SceneDef> = {
     first: 'Pilot bildirimi',
     rate: 3,
     duration: 170,
-    clock: 7 * 3600 + 40 * 60,
+    clock: 8 * 3600 + 40 * 60,
     focus: [-640, 6, 30],
     radius: 190,
     height: 80,
@@ -280,13 +293,19 @@ export const SCENES: Record<SceneId, SceneDef> = {
     rate: 1,
     duration: 60,
     clock: 12 * 3600,
-    focus: [-300, 30, 0],
-    radius: 520,
-    height: 200,
+    focus: [-250, 30, -120],
+    radius: 380,
+    height: 150,
     setup: (r) => {
       const dv = new DroneVisual(9, '#e0384f', 'guard')
       r.c.root.add(dv.root)
       r.vars.rogue = dv
+      r.vars.track = [dv.root]
+      // izinsiz drone küçük: uzaktan da seçilsin diye kırmızı, nabız gibi atan bir işaret
+      const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: '#ff3b4f', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }))
+      mark.scale.setScalar(20)
+      dv.root.add(mark)
+      r.vars.mark = mark
       r.add(new RfWaves(V(LAYOUT.stationA.x, 0, LAYOUT.stationA.z)))
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(0, 0, 0), V(0, 0, 0)]), new THREE.LineDashedMaterial({ color: '#e0384f', dashSize: 8, gapSize: 5 }))
       line.frustumCulled = false
@@ -298,6 +317,7 @@ export const SCENES: Record<SceneId, SceneDef> = {
       const a = t * 0.12
       const p = V(-250 + Math.cos(a) * 220, 60, -120 + Math.sin(a) * 140)
       dv.update(p, a + Math.PI / 2, 9, true, false, dt, 0)
+      ;(r.vars.mark as THREE.Sprite).scale.setScalar(18 + Math.sin(t * 5) * 5)
       const line = r.vars.line as THREE.Line
       const pos = line.geometry.attributes.position as THREE.BufferAttribute
       const m = r.mast(V(-1000, 0, 0))
@@ -355,7 +375,15 @@ export const SCENES: Record<SceneId, SceneDef> = {
       { t: 2, text: 'Hibrit invertör kesintisiz olarak ada moduna geçti: hücreler bataryadan besleniyor.', kind: 'ok' },
       { t: 6, text: 'Teknik birim bilgilendirildi.' },
       { t: 12, text: 'Güneş ve türbin bataryayı doldurmaya devam ediyor; Çanakkale kovanında özerklik ≈1 gün.', kind: 'ok' },
-      { t: 20, text: 'Planlı tarama şebekesiz de kalkıyor.', run: (r) => r.c.mission.launch('fod') },
+      {
+        t: 20,
+        text: 'Planlı tarama şebekesiz de kalkıyor: kâşifler peteklerinden havalandı.',
+        run: (r) => {
+          r.c.mission.launch('fod')
+          r.vars.focus = V(LAYOUT.stationA.x + 160, 4, LAYOUT.stationA.z * 0.5)
+          r.vars.zoom = 3.2
+        },
+      },
     ],
   },
   smoke: {
@@ -364,9 +392,9 @@ export const SCENES: Record<SceneId, SceneDef> = {
     rate: 2,
     duration: 120,
     clock: 16 * 3600,
-    focus: [-1560, 20, 420],
-    radius: 360,
-    height: 140,
+    focus: [-1740, 10, 640],
+    radius: 320,
+    height: 130,
     setup: (r) => {
       r.add(new Fire(V(-1780, 0, 720), 3.2, false))
       r.add(new Fire(V(-1830, 0, 690), 2.6, true))
@@ -464,7 +492,7 @@ export const SCENES: Record<SceneId, SceneDef> = {
     first: 'Bakıcı (işçinin kamera başlığı)',
     rate: 3,
     duration: 210,
-    clock: 8 * 3600,
+    clock: 8 * 3600 + 30 * 60,
     focus: [270, 6, -227],
     radius: 75,
     height: 32,
@@ -512,7 +540,12 @@ export const SCENES: Record<SceneId, SceneDef> = {
 export class ScenarioDirector {
   id: SceneId | null = null
   run: SceneRun | null = null
+  arc: SceneArc | null = null
   private fired = new Set<number>()
+  private t0: number | null = null
+  private lastT = 0
+  private frame: { x: number; z: number; k: number } | null = null
+  private box = new THREE.Box3()
 
   constructor(private ctx: () => SceneCtx) {}
 
@@ -529,6 +562,62 @@ export class ScenarioDirector {
     this.run = new SceneRun(c)
     this.fired.clear()
     def.setup?.(this.run)
+    this.arc = this.arcFor(id)
+    this.t0 = null
+    this.frame = null
+  }
+
+  /**
+   * Yörüngenin engelsiz dilimi: 72 açıdan olay noktasına ve çevresindeki dört noktaya görüş ışını atılır.
+   * Hiçbir bina, hangar ya da kule kadrajı kapatmıyorsa tam tur; kapatıyorsa en geniş açık yayda git-gel.
+   * Açık yay 60°'den darsa kamera biraz yükselip uzaklaşarak yeniden dener. Alçak güneşe karşı bakılan açılar da dışarıda kalır.
+   */
+  arcFor(id: SceneId): SceneArc {
+    const d = SCENES[id]
+    const full: SceneArc = { mid: 2.2, half: Math.PI, full: true, radius: d.radius, height: d.height }
+    const view = this.ctx().clearView
+    if (!view) return full
+    const N = 72
+    const look = V(...d.focus)
+    const o = d.radius * 0.22
+    const targets = [look, V(look.x + o, look.y, look.z), V(look.x - o, look.y, look.z), V(look.x, look.y, look.z + o), V(look.x, look.y, look.z - o)]
+    const { elev, az } = sunPosition(DEFAULT_DAY_OF_YEAR, d.clock)
+    const sun = sunDirection(elev, az).setY(0).normalize()
+    const lowSun = elev > -0.05 && elev < 0.45
+    // güneşe karşı bakış: kameradan olaya yön, güneşin yatay yönüyle 50°'den dar açı yapıyor
+    const glare = (a: number) => lowSun && -Math.cos(a) * sun.x - Math.sin(a) * sun.z > Math.cos((50 * Math.PI) / 180)
+    let best: SceneArc | null = null
+    let bestRun = 0
+    for (let k = 0; k < 4; k++) {
+      const radius = d.radius * (1 + 0.1 * k)
+      const height = d.height * (1 + 0.35 * k)
+      const ok: boolean[] = []
+      for (let i = 0; i < N; i++) {
+        const a = (i / N) * Math.PI * 2
+        const pos = V(look.x + Math.cos(a) * radius, height, look.z + Math.sin(a) * radius)
+        ok.push(!glare(a) && targets.every((t) => view(pos, t, 6)))
+      }
+      const firstBad = ok.indexOf(false)
+      if (firstBad < 0) return { ...full, radius, height }
+      let run = 0
+      let runStart = 0
+      for (let j = 1; j <= N; j++) {
+        const i = (firstBad + j) % N
+        if (!ok[i]) {
+          run = 0
+          continue
+        }
+        if (run === 0) runStart = i
+        run++
+        if (run > bestRun) {
+          bestRun = run
+          const step = (Math.PI * 2) / N
+          best = { mid: (runStart + (run - 1) / 2) * step, half: ((run - 1) / 2) * step, full: false, radius, height }
+        }
+      }
+      if (bestRun >= N / 6) break
+    }
+    return best ?? full
   }
 
   stop() {
@@ -563,12 +652,48 @@ export class ScenarioDirector {
     return !!this.def && !!this.run && this.run.t >= this.def.duration
   }
 
-  /** yörünge kamerası: olayın çevresinde yavaşça döner */
+  /**
+   * Yörünge kamerası: olayın çevresinde yavaşça döner; engelli sahnede açık yayda git-gel yapar.
+   * Olaya yakın uçan drone'lar ve müdahale araçları kadrajı kendine çeker; hepsi sığsın diye kamera
+   * en çok 2,2 kat uzaklaşır. Pistin öbür ucunu tarayan kâşif kovalanmaz, olay kadrajda kalır.
+   */
   pose(realT: number) {
     const d = this.def
-    if (!d) return null
-    const look = V(...d.focus)
-    const a = 2.2 + realT * 0.035
-    return { look, pos: V(look.x + Math.cos(a) * d.radius, d.height, look.z + Math.sin(a) * d.radius) }
+    const r = this.run
+    if (!d || !r) return null
+    if (this.t0 === null) this.t0 = realT
+    const t = realT - this.t0
+    const dt = Math.min(0.2, Math.max(0, realT - this.lastT))
+    this.lastT = realT
+    const arc = this.arc ?? { mid: 2.2, half: Math.PI, full: true, radius: d.radius, height: d.height }
+    // bir adım kamerayı başka bir yere çevirebilir (ör. şebeke kesintisinde kalkan kâşifler)
+    const focus = (r.vars.focus as THREE.Vector3 | undefined)?.clone() ?? V(...d.focus)
+    const m = r.c.mission
+    const actors = [...m.drones, m.guard, m.worker].filter((x) => x.airborne).map((x) => x.pos.clone())
+    for (const v of r.responders) actors.push(v.group.position.clone())
+    for (const o of (r.vars.track as THREE.Object3D[] | undefined) ?? []) actors.push(o.position.clone())
+    const near = actors.filter((p) => Math.hypot(p.x - focus.x, p.z - focus.z) < arc.radius * 3)
+    // sahnenin kendi nesneleri (yangın, sürü, kişi, buz bölgeleri) da kadraja sığmalı; uyarı bağları ve RF halkaları sayılmaz
+    const subjects = r.effects.filter((fx) => !(fx instanceof AlertLink) && !(fx instanceof RfWaves) && fx.group.visible).map((fx) => this.box.setFromObject(fx.group).getCenter(V(0, 0, 0)))
+    let want = { x: focus.x, z: focus.z, k: 1 }
+    if (near.length || subjects.length) {
+      const mx = near.length ? near.reduce((s, p) => s + p.x, 0) / near.length : focus.x
+      const mz = near.length ? near.reduce((s, p) => s + p.z, 0) / near.length : focus.z
+      const x = focus.x + (mx - focus.x) * 0.3
+      const z = focus.z + (mz - focus.z) * 0.3
+      const spread = Math.max(...[focus, ...near, ...subjects].map((p) => Math.hypot(p.x - x, p.z - z)))
+      want = { x, z, k: Math.min(2.2, Math.max(1, (spread * 1.9) / arc.radius)) }
+    }
+    if (!this.frame) this.frame = { ...want }
+    const s = 1 - Math.exp(-dt / 1.5)
+    this.frame.x += (want.x - this.frame.x) * s
+    this.frame.z += (want.z - this.frame.z) * s
+    this.frame.k += (want.k - this.frame.k) * s
+    const swing = arc.half * 0.85
+    const a = arc.full ? arc.mid + t * 0.035 : arc.mid + swing * Math.sin(t * Math.min(0.2, 0.035 / Math.max(0.05, swing)))
+    const f = this.frame
+    const zoom = f.k * ((r.vars.zoom as number | undefined) ?? 1)
+    const look = V(f.x, focus.y, f.z)
+    return { look, pos: V(look.x + Math.cos(a) * arc.radius * zoom, arc.height * zoom, look.z + Math.sin(a) * arc.radius * zoom) }
   }
 }

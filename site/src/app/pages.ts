@@ -76,7 +76,7 @@ export const PAGES: PageMeta[] = [
     id: 'hangar',
     nav: 'Hangar',
     title: 'Ne kadar taşır, ne kadar dayanır',
-    lead: 'Kovanın üç platformu ve petek hücresi: faydalı yük, koruma sınıfı, rüzgâr ve sıcaklık sınırları, uçuş süresi ve pilottan önce yapılacak dayanıklılık testleri.',
+    lead: 'Kovanın iki drone sınıfı ve petek hücresi: faydalı yük, koruma sınıfı, rüzgâr ve sıcaklık sınırları, uçuş süresi ve pilottan önce yapılacak dayanıklılık testleri.',
     station: 'hangar',
     primary: true,
     blocks: [

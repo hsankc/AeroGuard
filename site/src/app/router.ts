@@ -32,13 +32,21 @@ export function navigate(id: RouteId, block?: string) {
   window.location.hash = next
 }
 
-export function scrollToBlock(block: string | null) {
+/** smooth: aynı sayfada yumuşak kaydır; yeni sayfada bloğa doğrudan atla (uzun kaydırma yerine) */
+export function scrollToBlock(block: string | null, smooth = true) {
   if (!block) {
-    window.scrollTo({ top: 0, behavior: 'auto' })
+    window.scrollTo({ top: 0, behavior: 'instant' })
     return
   }
   const el = document.getElementById(block)
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  if (!el) return
+  if (smooth) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
+  el.scrollIntoView({ behavior: 'instant', block: 'start' })
+  // üstteki içerik (3D kutular, hesaplayıcılar) yerleşirken blok kayabilir: bir kez düzelt
+  window.setTimeout(() => el.scrollIntoView({ behavior: 'instant', block: 'start' }), 250)
 }
 
 export function useRoute() {

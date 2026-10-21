@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { PARAMS } from '../data/facts'
-import { confidenceFor, Mission, type DetectTarget, type DroneId } from './mission/mission'
+import { confidenceFor, Mission, type DetectTarget, type DroneId, type DroneSim } from './mission/mission'
 import { useSim, fmtClock, type CameraMode, type Check, type Detection, type Fault, type FodClass, type LogKind, type PickId, type Quality } from './store'
 import { buildAirliner, buildHelicopter } from './world/aircraft'
 import { buildAirfield, type Airfield } from './world/airfield'
@@ -204,6 +204,8 @@ export class Engine {
     })
     this.scene.add(airliner.group)
     this.parked = airliner.group
+    // apronda park halinde: iniş ışıkları ve çakar kapalı, yalnızca seyir ışıkları yanar
+    for (const s of [...(airliner.group.userData.landing as THREE.Sprite[]), airliner.group.userData.beacon as THREE.Sprite]) s.visible = false
 
     this.heli.group.visible = false
     this.scene.add(this.heli.group)
@@ -275,6 +277,7 @@ export class Engine {
       peteks: this.peteks,
       parked: this.parked,
       setClock: (sec) => useSim.getState().set({ clock: sec, wind: 3.2 }),
+      clearView: (from, to, margin) => this.clearView(from, to, margin),
     }))
     canvas.addEventListener('pointermove', (e) => {
       if (this.mode !== 'explore' || e.pointerType === 'touch') return
@@ -385,8 +388,60 @@ export class Engine {
     this.heroWait = 0
     this.camera.clearViewOffset()
     this.director.start(id)
+    this.buildLabels()
     this.startCamBlend()
     useSim.getState().set({ sceneT: 0 })
+  }
+
+  private occluders: THREE.Mesh[] | null = null
+  private occOwners: THREE.Box3[] = []
+  private sightRay = new THREE.Raycaster()
+
+  /**
+   * Sabit yapılar (binalar, hangar, kule, petekler, enerji adası, park eden uçak) görüşü kapatıyor mu.
+   * Hedefi içine alan yapı sahnenin konusudur (ör. buz haritasındaki uçak), engel sayılmaz.
+   */
+  private clearView(from: THREE.Vector3, to: THREE.Vector3, margin: number) {
+    if (!this.occluders) {
+      const list: THREE.Mesh[] = []
+      const size = new THREE.Vector3()
+      const add = (owner: THREE.Object3D) => {
+        const box = new THREE.Box3().setFromObject(owner).expandByScalar(3)
+        box.getSize(size)
+        if (size.x > 600 || size.z > 600) {
+          // geniş grup: içindekilere tek tek bak; zemin ve pist gibi geniş yüzeyler atlanır
+          owner.children.forEach(add)
+          return
+        }
+        let tall = false
+        owner.traverse((o) => {
+          if (!(o instanceof THREE.Mesh)) return
+          const b = new THREE.Box3().setFromObject(o).getSize(size)
+          if (b.y < 2.5 || Math.min(b.x, b.z) < 1.5) return // çizgiler, ışıklar, ince direkler
+          o.userData.occOwner = box
+          list.push(o)
+          tall = true
+        })
+        if (tall) this.occOwners.push(box)
+      }
+      this.scene.updateMatrixWorld(true)
+      this.airfield.group.children.forEach(add)
+      ;[this.energy.group, this.parked, ...this.peteks.map((p) => p.group)].forEach(add)
+      this.occluders = list
+    }
+    // kamera bir yapının 30 m yakınında, çatısının hemen üstünde olmasın: ön planı kaplar (konunun kendisi hariç)
+    const near = (b: THREE.Box3) =>
+      !b.containsPoint(to) && from.x > b.min.x - 30 && from.x < b.max.x + 30 && from.z > b.min.z - 30 && from.z < b.max.z + 30 && from.y < b.max.y + 30
+    if (this.occOwners.some(near)) return false
+    const dir = to.clone().sub(from)
+    const dist = dir.length()
+    this.sightRay.set(from, dir.normalize())
+    this.sightRay.near = 0
+    this.sightRay.far = Math.max(0, dist - margin)
+    return !this.sightRay.intersectObjects(this.occluders, false).some((h) => {
+      const owner = h.object.userData.occOwner as THREE.Box3 | undefined
+      return !owner?.containsPoint(to)
+    })
   }
 
   /** Arayüzden: aynı sahneyi yeniden oynat */
@@ -1000,6 +1055,12 @@ export class Engine {
   setLabelLayer(el: HTMLElement | null) {
     this.clearLabels()
     this.labelLayer = el
+    this.buildLabels()
+  }
+
+  /** Drone, petek, kule ve pist etiketleri (operasyon merkezi ve senaryo sahneleri) */
+  private buildLabels() {
+    const el = this.labelLayer
     if (!el) return
     const mk = (text: string, cls: string, pos: () => THREE.Vector3 | null, minDist?: number) => {
       const d = document.createElement('div')
@@ -1009,19 +1070,23 @@ export class Engine {
       this.labels.push({ el: d, pos, minDist })
     }
     const dv = this.mission.drones
-    mk('D1', 'sim-label--d1', () => dv[0].pos.clone().add(new THREE.Vector3(0, 3, 0)))
-    mk('D2', 'sim-label--d2', () => dv[1].pos.clone().add(new THREE.Vector3(0, 3, 0)))
-    mk('Bekçi', 'sim-label--guard', () => this.mission.guard.pos.clone().add(new THREE.Vector3(0, 3, 0)))
-    mk('İşçi', 'sim-label--worker', () => this.mission.worker.pos.clone().add(new THREE.Vector3(0, 3.6, 0)))
-    mk('Petek A', 'sim-label--place', () => new THREE.Vector3(LAYOUT.stationA.x, 8, LAYOUT.stationA.z))
-    mk('Petek B', 'sim-label--place', () => new THREE.Vector3(LAYOUT.stationB.x, 8, LAYOUT.stationB.z))
-    mk('Enerji adası', 'sim-label--place', () => new THREE.Vector3(LAYOUT.energy.x, 14, LAYOUT.energy.z))
-    mk('Kule', 'sim-label--place', () => new THREE.Vector3(LAYOUT.tower.x, 38, LAYOUT.tower.z))
-    mk('Pist 04', 'sim-label--rwy', () => new THREE.Vector3(-RWY.half + 60, 2, 0), 400)
-    mk('Pist 22', 'sim-label--rwy', () => new THREE.Vector3(RWY.half - 60, 2, 0), 400)
+    // etiket dili sayfanın diliyle aynı (etiketler operasyon merkezi ya da sahne açılınca kurulur)
+    const L = (tr: string, en: string) => (document.documentElement.lang === 'en' ? en : tr)
+    // senaryo sahnesinde yuvadaki drone'un etiketi petek etiketinin üstüne biner: yalnızca uçarken
+    const at = (d: DroneSim, up: number) => () => (this.mode === 'scene' && !d.airborne ? null : d.pos.clone().add(new THREE.Vector3(0, up, 0)))
+    mk('D1', 'sim-label--d1', at(dv[0], 3))
+    mk('D2', 'sim-label--d2', at(dv[1], 3))
+    mk(L('Bekçi', 'Guard'), 'sim-label--guard', at(this.mission.guard, 3))
+    mk(this.mode === 'scene' && this.director.id === 'ice' ? L('Bakıcı', 'Nurse') : L('İşçi', 'Worker'), 'sim-label--worker', at(this.mission.worker, 3.6))
+    mk(L('Petek A', 'Hive A'), 'sim-label--place', () => new THREE.Vector3(LAYOUT.stationA.x, 8, LAYOUT.stationA.z))
+    mk(L('Petek B', 'Hive B'), 'sim-label--place', () => new THREE.Vector3(LAYOUT.stationB.x, 8, LAYOUT.stationB.z))
+    mk(L('Enerji adası', 'Energy island'), 'sim-label--place', () => new THREE.Vector3(LAYOUT.energy.x, 14, LAYOUT.energy.z))
+    mk(L('Kule', 'Tower'), 'sim-label--place', () => new THREE.Vector3(LAYOUT.tower.x, 38, LAYOUT.tower.z))
+    mk(L('Pist 04', 'RWY 04'), 'sim-label--rwy', () => new THREE.Vector3(-RWY.half + 60, 2, 0), 400)
+    mk(L('Pist 22', 'RWY 22'), 'sim-label--rwy', () => new THREE.Vector3(RWY.half - 60, 2, 0), 400)
     mk('ADS-B', 'sim-label--hazard', () => (this.heliState.active ? this.heli.group.position.clone().add(new THREE.Vector3(0, 8, 0)) : null))
-    mk('Denetim aracı', 'sim-label--place', () => (this.day?.vehicle.busy ? this.day.vehicle.group.position.clone().setY(7) : null))
-    mk('Yolcu uçağı', 'sim-label--place', () => {
+    mk(L('Denetim aracı', 'Inspection vehicle'), 'sim-label--place', () => (this.day?.vehicle.busy ? this.day.vehicle.group.position.clone().setY(7) : null))
+    mk(L('Yolcu uçağı', 'Airliner'), 'sim-label--place', () => {
       const a = this.day?.fleet.active(useSim.getState().clock)
       return a ? a.position.clone().add(new THREE.Vector3(0, 16, 0)) : null
     })
@@ -1227,7 +1292,9 @@ export class Engine {
       const look = new THREE.Vector3()
       const pose = this.mode === 'scene' ? this.director.pose(this.realT) : null
       if (pose) {
-        want.copy(pose.pos)
+        // dikey (telefon) ekranda yatay görüş dar: sahnenin konusu kenarlardan taşmasın diye kamera geri çekilir
+        const k = THREE.MathUtils.clamp(1.5 / this.camera.aspect, 1, 2.2)
+        want.copy(pose.pos).sub(pose.look).multiplyScalar(k).add(pose.look)
         look.copy(pose.look)
       } else if (this.station === 'hero' || this.station === 'missions') this.followCam(dt, want, look)
       else {
@@ -1506,7 +1573,7 @@ export function getEngine() {
 export function createEngine(canvas: HTMLCanvasElement) {
   if (!instance) {
     instance = new Engine(canvas)
-    if (import.meta.env.DEV) (window as unknown as { __engine: Engine }).__engine = instance
+    if (import.meta.env.DEV) Object.assign(window, { __engine: instance, __sim: useSim })
   }
   return instance
 }

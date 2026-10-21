@@ -235,7 +235,7 @@ export function HiveMind() {
       </div>
       <a className="tile tile--w12 glass" href={href('planlayici')}>
         <span className="tile__label">Planlayıcı</span>
-        <span className="tile__text">Bugünkü planlayıcı iki kâşifle çalışıyor; kast bazlı sürümü kovanın bir sonraki adımı. Tarifeyi sürükleyip görevlerin nasıl yer değiştirdiğini görün.</span>
+        <span className="tile__text">Planlayıcı kast bazlı çalışıyor: kâşif ve bekçi görevleri aynı gün içinde paralel yerleşir. Mini kovanla Çanakkale kovanı arasında geçin, tarifeyi sürükleyip görevlerin nasıl yer değiştirdiğini görün.</span>
         <span className="tile__foot">Planlayıcıyı aç</span>
       </a>
     </div>

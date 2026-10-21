@@ -42,7 +42,7 @@ export function Pickup() {
           <span className="tile__text">Rüzgâr ≤ 8 m/s ve pist kullanımda değil. Kablo salınımı nedeniyle toplama sırasında hız sınırlı.</span>
         </div>
       </div>
-      <p className="hangar__note">Yeni KPI’lar pilotta ölçülecek: tespitten temizliğe geçen süre ve ≤ 1 kg nesnelerde toplama başarı oranı. 3D’de toplama görevi bir sonraki sürümde oynatılabilecek.</p>
+      <p className="hangar__note">Yeni KPI’lar pilotta ölçülecek: tespitten temizliğe geçen süre ve ≤ 1 kg nesnelerde toplama başarı oranı. 3D’de denemek için: operasyon merkezinde bir tespit çıkınca “İşçi ile topla”ya basın; lastik patlaması senaryosunda da işçi küçük parçaları toplar.</p>
     </div>
   )
 }

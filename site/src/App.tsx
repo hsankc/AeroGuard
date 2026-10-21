@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { LangProvider, useTx } from './i18n'
 import { GlassNav } from './app/GlassNav'
 import { SiteFoot } from './app/SiteFoot'
@@ -25,9 +25,11 @@ export default function App() {
     document.body.classList.toggle('ops-open', opsOpen)
   }, [opsOpen])
 
-  // yeni sayfa başa açılır; blok verildiyse o bloğa kaydırılır (efekt DOM güncellendikten sonra çalışır)
+  // yeni sayfa başa açılır; blok verildiyse o bloğa gidilir (efekt DOM güncellendikten sonra çalışır)
+  const prevId = useRef(route.id)
   useEffect(() => {
-    scrollToBlock(route.block)
+    scrollToBlock(route.block, prevId.current === route.id)
+    prevId.current = route.id
   }, [route.id, route.block])
 
   return (

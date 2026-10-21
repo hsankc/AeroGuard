@@ -4,7 +4,7 @@ import { useSim } from '../../sim/store'
 const STEPS = [
   { tr: 'Kule onay ekranında görevi onaylayın; onay olmadan drone kalkmaz.', en: 'Approve the mission on the tower screen; no drone takes off without it.' },
   { tr: 'Piste kendi nesnenizi bırakın ve tarama sırasında drone kamerasında tespit edilişini izleyin.', en: 'Drop your own object on the runway and watch the drone camera detect it.' },
-  { tr: 'Tespitleri saha ekibi olarak onaylayın ya da yanlış alarm olarak işaretleyin.', en: 'Confirm detections as the field team, or mark them as false alarms.' },
+  { tr: 'Tespitleri saha ekibi olarak onaylayın, yanlış alarm olarak işaretleyin ya da küçük nesneyi işçiye toplatın.', en: 'Confirm detections as the field team, mark them as false alarms, or have the worker pick up a small object.' },
   { tr: 'Kâşifler peteğe döndüğünde temiz pist raporunu açın ve yazdırın.', en: 'When the scouts are docked, open and print the clean runway report.' },
 ]
 
@@ -27,8 +27,8 @@ export function OpsTeaser() {
         </button>
         <p>
           {t({
-            tr: 'Bir arıza da verebilirsiniz: ADS-B uyarısı, iletişim kaybı, sanal sınır aşımı ya da kulenin geri çağırması.',
-            en: 'You can also inject a fault: an ADS-B alert, a lost link, a geofence breach or a tower recall.',
+            tr: 'Bir arıza da verebilirsiniz: ADS-B uyarısı, iletişim kaybı, ani yan rüzgâr, GNSS karıştırma ya da aldatma; kule görevi her an geri çağırabilir.',
+            en: 'You can also inject a fault: an ADS-B alert, a lost link, a sudden crosswind, GNSS jamming or spoofing; the tower can recall the mission at any time.',
           })}
         </p>
       </div>

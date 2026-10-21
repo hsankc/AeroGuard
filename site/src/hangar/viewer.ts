@@ -177,9 +177,13 @@ export class HangarViewerEngine {
     const vfov = THREE.MathUtils.degToRad(this.camera.fov)
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * this.camera.aspect)
     const half = size.clone().multiplyScalar(0.5)
-    // dikeyde payı geniş tut (uzun türbin), yatayda dar (geniş drone kadrajı doldursun)
-    const dist = Math.max((half.y / Math.tan(vfov / 2)) * 1.35, (Math.hypot(half.x, half.z) / Math.tan(hfov / 2)) * 0.92)
+    // dikeyde payı geniş tut (uzun türbin), yatayda dar (geniş drone kadrajı doldursun).
+    // Yukarıdan bakınca yatay iz de dikeyde yer kaplar: geniş ve kısa sahnede yakın kol alttan taşmasın
     const dir = new THREE.Vector3(0.62, 0.4, 0.68).normalize()
+    const el = Math.asin(dir.y)
+    const foot = Math.hypot(half.x, half.z)
+    const tall = half.y * Math.cos(el) + foot * Math.sin(el)
+    const dist = Math.max((tall / Math.tan(vfov / 2)) * 1.3, (half.y / Math.tan(vfov / 2)) * 1.35, (foot / Math.tan(hfov / 2)) * 0.92)
     this.camera.position.copy(this.controls.target).addScaledVector(dir, dist)
     this.controls.minDistance = r * 1.1
     this.controls.maxDistance = r * 8

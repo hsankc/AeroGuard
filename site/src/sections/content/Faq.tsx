@@ -28,7 +28,7 @@ const QA: { q: string; a: ReactNode; action?: { label: string; run: () => void }
   },
   {
     q: 'Sinyal karıştırılır ya da GPS aldatılırsa?',
-    a: 'Peteklerdeki RF ve GNSS izleyici sorunu uçuştan önce görür ve hiçbir drone kalkmaz. Havadayken konum altı kaynaktan gelir (çok bantlı GNSS, RTK baz, görsel konum, UWB işaretçileri, IMU); tutarsız kaynak dışarıda bırakılır. Bağlantı kesilirse drone otonom olarak eve döner. Karıştırıcı kullanmıyoruz; bu yasal değil.',
+    a: 'Peteklerdeki RF ve GNSS izleyici sorunu uçuştan önce görür ve hiçbir drone kalkmaz. Havadayken konum beş kaynaktan gelir (çok bantlı GNSS, RTK baz, görsel konum, UWB işaretçileri, IMU); tutarsız kaynak dışarıda bırakılır. Bağlantı kesilirse drone otonom olarak eve döner. Karıştırıcı kullanmıyoruz; bu yasal değil.',
     action: { label: 'Katmanlı savunmayı gör', run: go('emniyet', 'karistirma') },
   },
   {
@@ -67,7 +67,7 @@ const QA: { q: string; a: ReactNode; action?: { label: string; run: () => void }
   },
   {
     q: 'Sivil–askeri havalimanında görüntüler nasıl korunuyor?',
-    a: 'Görüntüler havalimanı dışına çıkmaz: işleme ve depolama havalimanı içindeki kenar sunucuda yapılır, görüntüleme alanı pist şeridiyle sınırlanır, iletişim şifrelidir ve kule ekranına yalnızca iç ağdan erişilir.',
+    a: 'Görüntüler havalimanı dışına çıkmaz: işleme ve depolama havalimanı içindeki kenar sunucuda yapılır, görüntüleme alanı havalimanı içindeki görev alanlarıyla sınırlanır, iletişim şifrelidir ve kule ekranına yalnızca iç ağdan erişilir.',
   },
   {
     q: 'Yapay zekâ bir nesneyi kaçırırsa?',

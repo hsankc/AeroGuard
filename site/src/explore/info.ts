@@ -84,7 +84,7 @@ export const PICKS: Record<PickId, PickInfo> = {
   energy: {
     kicker: 'Enerji adası',
     title: 'Güneş, türbin, batarya',
-    text: '4 kWp güneş paneli, 3 kW dikey eksenli türbin, 20 kWh LFP batarya ve kenar YZ sunucusu. Şebeke yalnızca yedek.',
+    text: 'Çanakkale kovanı için 6 kWp güneş paneli (mini kovanda 4 kWp), 3 kW dikey eksenli türbin, 20 kWh LFP batarya ve kenar YZ sunucusu. Şebeke yalnızca yedek.',
     rows: [['Ek 14 payı', `türbin ≈9,2 m · izin ≈${fmt1(allowedHeight(LAYOUT.energy.z))} m`]],
     live: 'energy',
     links: [

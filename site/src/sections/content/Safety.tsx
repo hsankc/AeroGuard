@@ -45,7 +45,7 @@ export function Safety() {
             <div>
               <h3>Sanal sınır ve ADS-B</h3>
               <p>
-                Sanal sınır drone’u pist şeridi içinde ve <Fact id="geofence" /> altında tutar; aşılırsa otomatik eve dönüş. Drone’daki ADS-B alıcısı yakındaki hava aracını algılar,
+                Sanal sınır her drone’u görev alanında (pist şeridi, çit hattı ya da apron) ve <Fact id="geofence" /> altında tutar; aşılırsa otomatik eve dönüş. Drone’daki ADS-B alıcısı yakındaki hava aracını algılar,
                 beklenmedik yaklaşmada görev durur.
               </p>
             </div>
@@ -64,7 +64,7 @@ export function Safety() {
             <DataIcon />
             <div>
               <h3>Veri sahada kalır</h3>
-              <p>Sivil–askeri ortak kullanım nedeniyle görüntüler havalimanı dışına çıkmaz; işleme kenar sunucuda yapılır, görüntüleme alanı pist şeridiyle sınırlanır, iletişim şifrelidir.</p>
+              <p>Sivil–askeri ortak kullanım nedeniyle görüntüler havalimanı dışına çıkmaz; işleme kenar sunucuda yapılır, görüntüleme alanı havalimanı içindeki görev alanlarıyla sınırlanır, iletişim şifrelidir.</p>
             </div>
           </li>
         </ul>

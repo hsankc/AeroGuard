@@ -3,7 +3,7 @@ import { href } from '../app/router'
 import { useSim } from '../sim/store'
 import { getEngine } from '../sim/engine'
 import { usePlanner } from '../planner/store'
-import { DAY_END, DAY_START, TASK_SPEC, actual, fmt } from '../planner/plan'
+import { DAY_END, DAY_START, actual, fmt } from '../planner/plan'
 import { HiveMini } from './HiveMini'
 import { useLang, useNum, useTx } from '../i18n'
 import { OpsTeaser } from '../sections/content/OpsTeaser'
@@ -146,7 +146,7 @@ export function Home() {
                 tr: `Bugün ${stats.planned} görev, %${Math.round(stats.completion * 100)} gerçekleşme.`,
                 en: `${stats.planned} tasks today, ${Math.round(stats.completion * 100)}% completed.`,
               })}
-              {next ? t({ tr: ` Sıradaki FOD taraması ${fmt(next.start)}, ${TASK_SPEC[next.type].name.toLowerCase()} ${next.label}.`, en: ` Next FOD scan at ${fmt(next.start)}.` }) : ''}
+              {next ? t({ tr: ` Sıradaki FOD taraması ${fmt(next.start)}: ${next.label}.`, en: ` Next FOD scan at ${fmt(next.start)}.` }) : ''}
             </span>
           </a>
 
@@ -176,7 +176,7 @@ export function Home() {
 
           <a className="tile tile--w4 glass" href={href('gelisim')}>
             <span className="tile__label">{tx('Gelişim')}</span>
-            <span className="tile__title">v1 → v2 → v3</span>
+            <span className="tile__title">v1 → v2 → V3</span>
             <span className="tile__text">{tx('Mentör geri bildirimiyle kapsamı daralttık, sonra kovanı görevine göre uzmanlaştırdık.')}</span>
           </a>
         </div>

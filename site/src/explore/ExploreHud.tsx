@@ -174,7 +174,8 @@ export function ExploreHud() {
   const selected = useSim((s) => s.selected)
   const annex = useSim((s) => s.annex14)
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null)
-  const [help, setHelp] = useState(() => window.matchMedia?.('(min-width: 760px)').matches ?? true)
+  // kısa ekranda (dizüstü %150 ölçek gibi) kontrol listesi kapalı başlar: sahne görünür kalsın
+  const [help, setHelp] = useState(() => window.matchMedia?.('(min-width: 760px) and (min-height: 760px)').matches ?? true)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -52,8 +52,6 @@ const CHANGES = [
   },
 ]
 
-const REMOVED = ['Drone ile sıvı püskürtme', 'Glikol geri kazanımı', 'Radar emici kaplama', 'Türbin tepesinde şarj', '50+ drone’luk sürü', 'Yılda 15–25 bin ton CO₂', '%80 daha az kuş çarpması']
-
 export function Evolution() {
   const [airport, setAirport] = useState<'saw' | 'ckz'>('saw')
   const saw = useMemo(() => sawSchedule().map(actual).filter((t) => t >= DAY_START), [])
@@ -144,16 +142,6 @@ export function Evolution() {
         </div>
       </div>
 
-      <div className="evo__removed">
-        <h3>Projeden çıkardıklarımız</h3>
-        <ul>
-          {REMOVED.map((r) => (
-            <li key={r}>
-              <s>{r}</s>
-            </li>
-          ))}
-        </ul>
-      </div>
     </div>
   )
 }

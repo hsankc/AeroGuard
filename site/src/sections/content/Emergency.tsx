@@ -39,7 +39,7 @@ const SCENARIOS = [
   { scene: 'leak' as SceneId, name: 'Yakıt veya hidrolik sızıntısı', first: 'Termal ve RGB', action: 'Alanı işaretler, büyümesini izler', to: 'Apron, itfaiye', critical: true },
   { scene: 'intrusion' as SceneId, name: 'Çitten izinsiz giriş', first: 'Bekçi devriyesi', action: 'İzler, güvenliği yönlendirir', to: 'Güvenlik' },
   { scene: 'rogue' as SceneId, name: 'İzinsiz drone', first: 'RF izleyici, Remote ID', action: 'Konum ve yön uyarısı; müdahale etmeyiz', to: 'Kule, güvenlik' },
-  { scene: 'quake' as SceneId, name: 'Deprem sonrası pist hasarı', first: 'Kule çağrısı', action: 'Şebeke çökse de enerji adasıyla ≈15 dk’da çatlak taraması: yardım uçakları için pistin kullanılabilirliği belgelenir', to: 'Kule, AFAD', critical: true },
+  { scene: 'quake' as SceneId, name: 'Deprem sonrası pist hasarı', first: 'Kule çağrısı', action: 'Şebeke çökse de enerji adasıyla ≈12 dk’da çatlak taraması: yardım uçakları için pistin kullanılabilirliği belgelenir', to: 'Kule, AFAD', critical: true },
   { scene: 'grid' as SceneId, name: 'Şebeke kesintisi', first: 'Enerji yönetimi', action: 'Kovan bataryayla çalışmayı sürdürür: Çanakkale kovanında ≈1 gün, mini kovanda ≈1,5 gün', to: 'Teknik birim' },
   { scene: 'smoke' as SceneId, name: 'Çevrede yangın ve duman', first: 'Bekçi', action: 'Çevre izleme, görüş uyarısı', to: 'Kule' },
   { scene: 'search' as SceneId, name: 'Gece kayıp kişi araması', first: 'Kule çağrısı', action: 'Bekçi ile termal arama', to: 'Güvenlik' },

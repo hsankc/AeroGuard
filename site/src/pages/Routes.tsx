@@ -204,7 +204,7 @@ function Emniyet() {
       <Block
         id="kurallar"
         title="Kurallar ve riskler"
-        lead="Kule onayı olmadan kalkış yok. Sanal sınır drone’u pist şeridi içinde ve 30 m’nin altında tutar, ADS-B alıcısı yaklaşan hava aracını algılar. Arızada drone pist dışındaki acil iniş noktasına iner."
+        lead="Kule onayı olmadan kalkış yok. Sanal sınır her drone’u görev alanında (pist şeridi, çit hattı ya da apron) ve 30 m’nin altında tutar, ADS-B alıcısı yaklaşan hava aracını algılar. Arızada drone pist dışındaki acil iniş noktasına iner."
       >
         <Safety />
       </Block>

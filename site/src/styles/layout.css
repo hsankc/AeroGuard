@@ -122,7 +122,6 @@
   display: grid;
   gap: 22px;
   padding: clamp(20px, 3vw, 36px);
-  scroll-margin-top: calc(var(--nav-h) + 16px);
 }
 
 .block__head {

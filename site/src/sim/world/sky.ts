@@ -89,8 +89,8 @@ export class SkySystem {
     this.sun.target.position.copy(focus)
     this.sun.target.updateMatrixWorld()
 
-    // gece: mehtap benzeri soğuk ortam ışığı
-    this.hemi.intensity = 0.42 + 0.6 * day
+    // gece: mehtap benzeri soğuk ortam ışığı; pist, çim ve binalar seçilebilsin diye zifiri karanlık değil
+    this.hemi.intensity = 0.9 + 0.12 * day
     this.hemi.color.set('#bcd3ee').lerp(new THREE.Color('#4a679c'), this.night)
     this.hemi.groundColor.set('#5b6340').lerp(new THREE.Color('#1c2536'), this.night)
 
@@ -99,8 +99,8 @@ export class SkySystem {
     const fogNight = new THREE.Color('#0d1626')
     this.fog.color.copy(fogDay).lerp(fogGold, golden * 0.8).lerp(fogNight, this.night)
     ;(this.stars.material as THREE.PointsMaterial).opacity = this.night * 0.9
-    // öğle güneşinde beton ve çim fazla açık kalmasın: tam gündüz pozlaması biraz düşük
-    renderer.toneMappingExposure = 0.56 + 0.06 * (1 - e) + 0.22 * (1 - day) * (1 - this.night) + this.night * 0.25
+    // öğle güneşinde beton ve çim fazla açık kalmasın: güneş yükseldikçe pozlama düşer (öğlen ≈0,46)
+    renderer.toneMappingExposure = 0.56 + 0.06 * (1 - e) - 0.19 * Math.max(0, e) + 0.22 * (1 - day) * (1 - this.night) + this.night * 0.25
 
     // ortam haritası: saat 10 dakikadan fazla değişince yeniden üret
     if (Math.abs(clock - this.lastEnvClock) > 600) {
@@ -109,12 +109,15 @@ export class SkySystem {
       const sky2 = new Sky()
       sky2.scale.setScalar(1000)
       for (const k of Object.keys(u)) (sky2.material.uniforms as Record<string, { value: unknown }>)[k].value = (u as Record<string, { value: unknown }>)[k].value
+      // ortam ışığına güneş diski girmesin: öğlen bütün sahneyi süt beyazına boğuyordu (doğrudan güneşi zaten DirectionalLight veriyor)
+      const disc = (sky2.material.uniforms as Record<string, { value: unknown }>).showSunDisc
+      if (disc) disc.value = 0
       envScene.add(sky2)
       const rt = pmrem.fromScene(envScene, 0, 0.1, 2000)
       this.envRT?.dispose()
       this.envRT = rt
       this.scene.environment = rt.texture
-      this.scene.environmentIntensity = 0.35 + 0.5 * day
+      this.scene.environmentIntensity = 0.3 + 0.3 * day
       sky2.geometry.dispose()
       sky2.material.dispose()
     }

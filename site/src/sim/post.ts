@@ -45,7 +45,7 @@ export class PostFx {
     this.outline.enabled = false
     this.composer.addPass(this.outline)
 
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.2, 0.45, 2.6)
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.18, 0.4, 6)
     this.composer.addPass(this.bloom)
 
     this.composer.addPass(new OutputPass())
@@ -72,7 +72,8 @@ export class PostFx {
     if (q === this.night) return
     this.night = q
     this.bloom.strength = THREE.MathUtils.lerp(0.18, 0.75, q)
-    this.bloom.threshold = THREE.MathUtils.lerp(2.6, 0.55, q)
+    // gündüz yalnızca ışık kaynakları parlasın; güneş alan beyaz çatı ve duvar parlamasın
+    this.bloom.threshold = THREE.MathUtils.lerp(6, 0.55, q)
     this.bloom.radius = THREE.MathUtils.lerp(0.4, 0.6, q)
   }
 

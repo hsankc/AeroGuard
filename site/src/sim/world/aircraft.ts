@@ -109,6 +109,7 @@ export function buildAirliner() {
     lights.push(s)
   }
   // iniş ışıkları (burun ve kanat kökleri) ve gövde üstünde kırmızı çakar
+  const landing: THREE.Sprite[] = []
   for (const [x, y, z, size] of [
     [18.6, 3.6, 0, 5.5],
     [4.5, 3.1, -3.2, 4],
@@ -118,12 +119,14 @@ export function buildAirliner() {
     s.scale.setScalar(size)
     s.position.set(x, y, z)
     g.add(s)
+    landing.push(s)
   }
   const beacon = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: '#ff2a1f', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }))
   beacon.scale.setScalar(4)
   beacon.position.set(-2, 6.4, 0)
   g.add(beacon)
   g.userData.beacon = beacon
+  g.userData.landing = landing
   return { group: g, lights }
 }
 

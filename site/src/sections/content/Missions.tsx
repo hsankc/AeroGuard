@@ -24,7 +24,7 @@ export function Missions() {
         <header>
           <Caste id="scout">Kâşif × 2</Caste>
           <h3>Uçuş öncesi FOD taraması</h3>
-          <p className="mis__freq">her ticari hareketten önce, günde ≈5</p>
+          <p className="mis__freq">her ticari hareketten önce, günde ≈4; sabah açılış taraması ayrıca</p>
         </header>
         <div className="mis__body">
           <p>

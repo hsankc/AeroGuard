@@ -8,8 +8,11 @@
 }
 
 .hv__stage {
-  position: relative;
-  min-height: 460px;
+  /* yan panel uzun olsa da sahne ekrana sığar ve kaydırırken görünür kalır (kısa ekranda model alta kaçmasın) */
+  position: sticky;
+  top: calc(var(--nav-h) + 16px);
+  align-self: start;
+  height: clamp(420px, calc(100svh - var(--nav-h) - 40px), 680px);
   overflow: hidden;
   border-radius: var(--radius-l);
   /* stüdyo fonu: ortası açık gri-mavi, kenarlara doğru koyulaşır (koyu gövdeler seçilsin) */
@@ -172,6 +175,9 @@
     grid-template-columns: 1fr;
   }
   .hv__stage {
+    position: relative;
+    top: auto;
+    height: auto;
     min-height: 380px;
   }
   .hv__tag {
