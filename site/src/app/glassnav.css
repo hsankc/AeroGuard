@@ -180,7 +180,8 @@
 }
 
 @media (max-width: 760px) {
-  .gnav__explore {
+  .gnav__explore,
+  .gnav__present {
     display: none;
   }
 }

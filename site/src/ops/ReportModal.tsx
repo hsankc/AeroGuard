@@ -68,7 +68,7 @@ export function ReportModal() {
           </div>
           <div>
             <dt>Dönüş doğrulaması</dt>
-            <dd>İki drone istasyonda, kapaklar kapalı</dd>
+            <dd>İki kâşif peteğinde, kapaklar kapalı</dd>
           </div>
           <div>
             <dt>Görüntü işleme</dt>

@@ -5,6 +5,7 @@ import { getEngine } from '../sim/engine'
 import { usePlanner } from '../planner/store'
 import { DAY_END, DAY_START, TASK_SPEC, actual, fmt } from '../planner/plan'
 import { HiveMini } from './HiveMini'
+import { useLang, useNum, useTx } from '../i18n'
 import { OpsTeaser } from '../sections/content/OpsTeaser'
 import { openExplore } from '../explore/actions'
 import '../sections/hero.css'
@@ -43,6 +44,9 @@ function MiniDay() {
 }
 
 export function Home() {
+  const tx = useTx()
+  const num = useNum()
+  const { t } = useLang()
   const stats = usePlanner((s) => s.plan.stats)
   const next = usePlanner((s) => s.plan.tasks.find((t) => t.type === 'fod' && t.status === 'ok'))
 
@@ -52,135 +56,136 @@ export function Home() {
         <div className="hero__shade" aria-hidden="true" />
         <div className="hero__content">
           <h1 id="hero-title" className="hero__title">
-            Her uçuştan önce, doğrulanmış temiz pist.
+            {tx('Her uçuştan önce, doğrulanmış temiz pist.')}
           </h1>
           <p className="hero__sub">
-            AERO-GUARD, bölgesel havalimanları için kendi enerjisini üreten bir drone kovanı: kâşifler pisti tarar, işçiler bulunanı toplar, bekçiler kuşu uzaklaştırır, nöbetçiler acil
-            durumu ilk fark eder. Pilot saha Çanakkale Havalimanı.
+            {tx('AERO-GUARD, bölgesel havalimanları için kendi enerjisini üreten bir drone kovanı: kâşifler pisti tarar, işçiler bulunanı toplar, bekçiler kuşu uzaklaştırır, nöbetçiler acil durumu ilk fark eder. Pilot saha Çanakkale Havalimanı.')}
           </p>
           <div className="hero__actions">
             <button type="button" className="btn btn--primary" onClick={openOps}>
-              Operasyon merkezini aç
+              {tx('Operasyon merkezini aç')}
             </button>
             <button type="button" className="btn btn--ghost-light" onClick={() => openExplore()}>
-              3D’de gez (WASD)
+              {tx('3D’de gez (WASD)')}
             </button>
             <a className="btn btn--ghost-light" href={href('kovan')}>
-              Kovanı tanı
+              {tx('Kovanı tanı')}
             </a>
           </div>
         </div>
         <dl className="hero__readout glass glass--soft">
           <div>
-            <dt>iki kâşif ile tam pist taraması</dt>
+            <dt>{tx('iki kâşif ile tam pist taraması')}</dt>
             <dd>
               <Fact id="scanTime" />
             </dd>
           </div>
           <div>
-            <dt>yenilenebilir üretim / tasarım yükü, mini kovan</dt>
+            <dt>{tx('yenilenebilir üretim / tasarım yükü, mini kovan')}</dt>
             <dd>
               <Fact id="energyRatio" />
             </dd>
           </div>
           <div>
-            <dt>yıllık CO₂ azaltımı, havalimanı başına</dt>
+            <dt>{tx('yıllık CO₂ azaltımı, havalimanı başına')}</dt>
             <dd>
               <Fact id="co2" />
             </dd>
           </div>
           <div>
-            <dt>mini kovan kurulumu</dt>
+            <dt>{tx('mini kovan kurulumu')}</dt>
             <dd>
               <Fact id="capex" />
             </dd>
           </div>
           <div>
-            <dt>prototipten 3–5 havalimanına</dt>
+            <dt>{tx('prototipten 3–5 havalimanına')}</dt>
             <dd>
               <Fact id="roadmap" />
             </dd>
           </div>
         </dl>
-        <p className="hero__sim-note">Temsili simülasyon görüntüsü</p>
+        <p className="hero__sim-note">{tx('Temsili simülasyon görüntüsü')}</p>
       </section>
 
       <main className="home" aria-label="Keşfet">
         <div className="bento">
           <a className="tile tile--w7 tile--tall glass home-hive" href={href('kovan')}>
-            <span className="tile__label">Kovan</span>
-            <span className="tile__title">Görevine göre uzmanlaşmış drone’lar</span>
+            <span className="tile__label">{tx('Kovan')}</span>
+            <span className="tile__title">{tx('Görevine göre uzmanlaşmış drone’lar')}</span>
             <HiveMini />
-            <span className="tile__foot">Kastları ve kovan boylarını gör</span>
+            <span className="tile__foot">{tx('Kastları ve kovan boylarını gör')}</span>
           </a>
 
           <button type="button" className="tile tile--w5 glass home-ops" onClick={openOps}>
-            <span className="tile__label">Operasyon merkezi</span>
-            <span className="tile__title">Kule onayını siz verin</span>
-            <span className="tile__text">Piste bir cıvata bırakın, kâşiflerin onu bulmasını izleyin, sonra bir arıza verip emniyet kurallarının devreye girişini görün.</span>
-            <span className="tile__foot">Simülasyonu başlat</span>
+            <span className="tile__label">{tx('Operasyon merkezi')}</span>
+            <span className="tile__title">{tx('Kule onayını siz verin')}</span>
+            <span className="tile__text">{tx('Piste bir cıvata bırakın, kâşiflerin onu bulmasını izleyin, sonra bir arıza verip emniyet kurallarının devreye girişini görün.')}</span>
+            <span className="tile__foot">{tx('Simülasyonu başlat')}</span>
           </button>
 
           <button type="button" className="tile tile--w5 glass" onClick={playDay}>
-            <span className="tile__label">Bir günü oynat</span>
-            <span className="tile__title">05:00’ten gece yarısına</span>
-            <span className="tile__text">Uçaklar iner ve kalkar, görevler tarifeye göre başlar, rüzgârlı saatlerde pist araçla denetlenir.</span>
-            <span className="tile__foot">300× hızla izle</span>
+            <span className="tile__label">{tx('Bir günü oynat')}</span>
+            <span className="tile__title">{tx('05:00’ten gece yarısına')}</span>
+            <span className="tile__text">{tx('Uçaklar iner ve kalkar, görevler tarifeye göre başlar, rüzgârlı saatlerde pist araçla denetlenir.')}</span>
+            <span className="tile__foot">{tx('300× hızla izle')}</span>
           </button>
 
           <a className="tile tile--w4 glass" href={href('sistem', 'problem')}>
-            <span className="tile__label">Problem</span>
-            <span className="tile__value">13,9 milyar $</span>
-            <span className="tile__text">FOD ve kuş çarpmalarının dünya genelinde yıllık toplam maliyeti</span>
+            <span className="tile__label">{tx('Problem')}</span>
+            <span className="tile__value">{num('13,9 milyar $')}</span>
+            <span className="tile__text">{tx('FOD ve kuş çarpmalarının dünya genelinde yıllık toplam maliyeti')}</span>
           </a>
 
           <a className="tile tile--w8 glass home-planner" href={href('planlayici')}>
-            <span className="tile__label">Planlayıcı</span>
-            <span className="tile__title">Drone ile uçak hiç karşılaşmaz</span>
+            <span className="tile__label">{tx('Planlayıcı')}</span>
+            <span className="tile__title">{tx('Drone ile uçak hiç karşılaşmaz')}</span>
             <MiniDay />
             <span className="tile__text">
-              Bugün {stats.planned} görev, %{Math.round(stats.completion * 100)} gerçekleşme.
-              {next ? ` Sıradaki FOD taraması ${fmt(next.start)}, ${TASK_SPEC[next.type].name.toLowerCase()} ${next.label}.` : ''}
+              {t({
+                tr: `Bugün ${stats.planned} görev, %${Math.round(stats.completion * 100)} gerçekleşme.`,
+                en: `${stats.planned} tasks today, ${Math.round(stats.completion * 100)}% completed.`,
+              })}
+              {next ? t({ tr: ` Sıradaki FOD taraması ${fmt(next.start)}, ${TASK_SPEC[next.type].name.toLowerCase()} ${next.label}.`, en: ` Next FOD scan at ${fmt(next.start)}.` }) : ''}
             </span>
           </a>
 
           <a className="tile tile--w4 glass home-emergency" href={href('acil-durum')}>
-            <span className="tile__label">Acil durum</span>
-            <span className="tile__title">12 senaryo</span>
-            <span className="tile__text">Yangından deprem sonrası pist taramasına: olayı ilk fark eden kovan.</span>
+            <span className="tile__label">{tx('Acil durum')}</span>
+            <span className="tile__title">{tx('12 senaryo')}</span>
+            <span className="tile__text">{tx('Yangından deprem sonrası pist taramasına: olayı ilk fark eden kovan.')}</span>
           </a>
 
           <a className="tile tile--w4 glass" href={href('hangar')}>
-            <span className="tile__label">Hangar</span>
-            <span className="tile__title">Ne kadar taşır?</span>
-            <span className="tile__text">İşçi drone ≈2,7 kg faydalı yük; nesne toplamada tasarım sınırı 1 kg.</span>
+            <span className="tile__label">{tx('Hangar')}</span>
+            <span className="tile__title">{tx('Ne kadar taşır?')}</span>
+            <span className="tile__text">{tx('İşçi drone ≈2,7 kg faydalı yük; nesne toplamada tasarım sınırı 1 kg.')}</span>
           </a>
 
           <a className="tile tile--w4 glass" href={href('emniyet', 'karistirma')}>
-            <span className="tile__label">Emniyet</span>
-            <span className="tile__title">Sinyal karıştırmaya dayanıklı</span>
-            <span className="tile__text">GNSS kesilirse UWB ve görsel konum devreye girer; tutarsız kaynak dışarıda kalır.</span>
+            <span className="tile__label">{tx('Emniyet')}</span>
+            <span className="tile__title">{tx('Sinyal karıştırmaya dayanıklı')}</span>
+            <span className="tile__text">{tx('GNSS kesilirse UWB ve görsel konum devreye girer; tutarsız kaynak dışarıda kalır.')}</span>
           </a>
 
           <a className="tile tile--w4 glass" href={href('etki')}>
-            <span className="tile__label">Etki</span>
-            <span className="tile__value">1,8×</span>
-            <span className="tile__text">Mini kovan tükettiğinin 1,8 katını güneş ve rüzgârdan üretiyor. Hücre ekledikçe dengenin nasıl değiştiğini Kovanını kur’da görün.</span>
+            <span className="tile__label">{tx('Etki')}</span>
+            <span className="tile__value">{num('1,8×')}</span>
+            <span className="tile__text">{tx('Mini kovan tükettiğinin 1,8 katını güneş ve rüzgârdan üretiyor. Hücre ekledikçe dengenin nasıl değiştiğini Kovanını kur’da görün.')}</span>
           </a>
 
           <a className="tile tile--w4 glass" href={href('gelisim')}>
-            <span className="tile__label">Gelişim</span>
+            <span className="tile__label">{tx('Gelişim')}</span>
             <span className="tile__title">v1 → v2 → v3</span>
-            <span className="tile__text">Mentör geri bildirimiyle kapsamı daralttık, sonra kovanı görevine göre uzmanlaştırdık.</span>
+            <span className="tile__text">{tx('Mentör geri bildirimiyle kapsamı daralttık, sonra kovanı görevine göre uzmanlaştırdık.')}</span>
           </a>
         </div>
 
         <section className="block glass home-block" aria-labelledby="ops-h">
           <header className="block__head">
-            <h2 id="ops-h">Görevi kendiniz yönetin</h2>
+            <h2 id="ops-h">{tx('Görevi kendiniz yönetin')}</h2>
             <p>
-              Çanakkale pistinin dijital ikizinde bir uçuş öncesi FOD taramasını baştan sona izleyin: kule onayını siz verin, piste kendi nesnenizi bırakın ve bir arıza vererek emniyet
-              kurallarının nasıl devreye girdiğini görün.
+              {tx('Çanakkale pistinin dijital ikizinde bir uçuş öncesi FOD taramasını baştan sona izleyin: kule onayını siz verin, piste kendi nesnenizi bırakın ve bir arıza vererek emniyet kurallarının nasıl devreye girdiğini görün.')}
             </p>
           </header>
           <OpsTeaser />

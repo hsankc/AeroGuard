@@ -523,7 +523,7 @@ export class Engine {
     s.set({ clock: w?.start ?? 8 * 3600 + 37 * 60, cameraMode: 'overview', log: [], paused: false, speed: 16 })
     this.resetWorld(2)
     this.placeCamera('overview', true)
-    this.log('info', 'Görev planlandı: uçuş öncesi FOD taraması (2 drone, pist 04/22)')
+    this.log('info', 'Görev planlandı: uçuş öncesi FOD taraması (2 kâşif, pist 04/22)')
     if (w)
       this.log(
         'info',
@@ -721,7 +721,7 @@ export class Engine {
   reject() {
     if (useSim.getState().phase !== 'awaiting') return
     useSim.getState().set({ phase: 'idle' })
-    this.log('tower', 'Kule görevi reddetti. Drone’lar istasyonda kalıyor.')
+    this.log('tower', 'Kule görevi reddetti. Drone’lar peteklerinde kalıyor.')
   }
 
   approve() {
@@ -933,7 +933,7 @@ export class Engine {
     if (p === 'flight') s.set({ phase: 'flight' })
     if (p === 'return') {
       s.set({ phase: 'return', abortReason: reason ?? null })
-      this.log('alert', `Görev kesildi: ${reason}. Drone’lar istasyonlarına dönüyor.`)
+      this.log('alert', `Görev kesildi: ${reason}. Drone’lar peteklerine dönüyor.`)
     }
     if (p === 'aborted') {
       s.set({ phase: 'aborted' })

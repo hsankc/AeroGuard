@@ -183,7 +183,7 @@ function Etki() {
       <Block
         id="maliyet"
         title="Havalimanına kurulum yükü yok: hizmet olarak drone"
-        lead="Havalimanı kurulum parası ödemez, beş yıllık abonelik öder. Hesaplayıcı mini kovanı (v2) gösterir; Çanakkale kovanının ön tahmini Kovan sayfasında."
+        lead="Havalimanı kurulum parası ödemez, beş yıllık abonelik öder. Mini kovanı (rapor v2) ve Çanakkale kovanını (V3 ön tahmini) karşılaştırın."
       >
         <BusinessCalc />
       </Block>

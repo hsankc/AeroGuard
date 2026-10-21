@@ -335,3 +335,14 @@ button.tile:hover {
     animation: none;
   }
 }
+
+/* İngilizce görünümde: ayrıntılı metinlerin Türkçe olduğunu söyleyen not */
+.page-hero__lang {
+  justify-self: start;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--honey) 40%, transparent);
+  border-radius: 999px;
+  color: var(--ink-2) !important;
+  font-family: var(--font-ui);
+  font-size: var(--fs-14) !important;
+}

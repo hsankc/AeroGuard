@@ -1,0 +1,119 @@
+/* Sunum modu: altta ince şerit; keşif ve sahne arayüzleri şeridin üstüne kayar */
+
+.pres {
+  position: fixed;
+  left: 50%;
+  bottom: 10px;
+  z-index: 140;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 16px;
+  width: min(980px, calc(100vw - 20px));
+  padding: 10px 14px 14px;
+  border-radius: var(--radius-l);
+  transform: translateX(-50%);
+  font-family: var(--font-ui);
+  color: var(--ink);
+}
+
+.pres__n {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-24);
+  color: var(--honey);
+}
+
+.pres__text b {
+  display: block;
+  font-size: var(--fs-18);
+  line-height: 1.2;
+}
+
+.pres__text p {
+  margin-top: 2px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+  line-height: 1.4;
+}
+
+.pres__nav {
+  display: flex;
+  gap: 6px;
+}
+
+.pres__nav button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pres__nav button.is-next {
+  border-color: var(--honey);
+  background: var(--honey);
+  color: #1d1408;
+}
+
+.pres__nav button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pres__dots {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 4px;
+}
+
+.pres__dots span {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.pres__dots .is-past {
+  background: color-mix(in srgb, var(--honey) 45%, transparent);
+}
+
+.pres__dots .is-on {
+  background: var(--honey);
+}
+
+/* şeridin altında kalmasın */
+body.presenting .shud__bar,
+body.presenting .xhud__card {
+  bottom: 118px;
+}
+
+body.presenting .xhud__stick,
+body.presenting .xhud__lift {
+  bottom: 130px;
+}
+
+body.presenting .site-foot {
+  padding-bottom: 130px;
+}
+
+@media (max-width: 680px) {
+  .pres {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .pres__nav {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+  .pres__text p {
+    display: none;
+  }
+  body.presenting .shud__bar,
+  body.presenting .xhud__card {
+    bottom: 130px;
+  }
+}

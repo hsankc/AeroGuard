@@ -4,7 +4,7 @@ import { useSim } from '../../sim/store'
 import { href } from '../../app/router'
 
 /*
-  Sistem mimarisi (rapordaki Şekil 1): enerji adası → kovan istasyonları → yazılım ve karar → çıktılar.
+  Sistem mimarisi (rapordaki Şekil 1, V3): enerji adası → kovan petekleri ve kastlar → yazılım ve karar → çıktılar.
   Güç akışı yeşil, görev/veri akışı mavi. Bir kutuya tıklayınca açıklaması açılır.
 */
 
@@ -21,16 +21,16 @@ const NODES: Node[] = [
   { id: 'turbine', x: 20, y: 166, title: 'Dikey eksenli türbin', sub: '3 kW, ≈3.150 kWh/yıl', kind: 'energy', focus: 'energy', text: 'Her yönden gelen rüzgârı yakalar, düşük gürültülüdür ve kompakttır. Küçük türbinlerin sahadaki performansı türbülansa duyarlı olduğu için kapasite faktörü bilerek düşük, %12 alındı. Türbinin yeri DHMİ mânia görüşü ve radar etki analiziyle belirlenecek.' },
   { id: 'battery', x: 20, y: 268, title: 'Batarya (LFP)', sub: '20 kWh, ≈1–1,5 gün özerklik', kind: 'energy', focus: 'energy', text: '20 kWh LFP batarya ve hibrit invertör. Tasarım yüküyle mini kovanda yaklaşık 1,5, Çanakkale kovanında yaklaşık 1 günlük özerklik sağlar; uzun süre güneşsiz ve rüzgârsız geçen dönemlerde şebeke devreye girer.' },
   { id: 'grid', x: 20, y: 380, title: 'Şebeke bağlantısı', sub: 'yalnızca yedek', kind: 'grid', text: 'Şebeke yalnızca yedek olarak bağlı. Başvurudaki “şebekeden tam bağımsızlık” iddiasını, tek kaynağa dayanmak riskli olduğu için kaldırdık.' },
-  { id: 'stationA', x: 365, y: 84, title: 'İstasyon A, pist 04 ucu', sub: 'Drone 1, termal + 48 MP kamera', kind: 'station', focus: 'stationA', text: 'Pist şeridinin dışında ve ICAO Ek 14 engel sınırlama yüzeylerinin altında otomatik drone istasyonu. Referans donanım DJI Dock 2 sınıfı: IP55, –25 °C ile 45 °C arası çalışma, %20’den %90’a 32 dakikada şarj. Drone’da 48 MP geniş açı ve 640 × 512 termal kamera, RTK konumlama var. Mimari donanımdan bağımsız; yerli muadiller değerlendirmeye açık.' },
-  { id: 'stationB', x: 365, y: 216, title: 'İstasyon B, pist 22 ucu', sub: 'Drone 2, termal + 48 MP kamera', kind: 'station', focus: 'stationB', text: 'İstasyon A’nın eşi; pistin diğer ucunda. İki drone pistin birer yarısını aynı anda tarar, böylece tam tarama yaklaşık 12 dakika sürer. Operasyonda 12 m/s, iniş-kalkışta 8 m/s rüzgâr sınırı var.' },
-  { id: 'acc', x: 365, y: 348, title: 'Görev aksesuarları', sub: 'hoparlör ve ışık, elle hızlı değişim', kind: 'grid', text: 'Yaban hayatı caydırma için hafif hoparlör ve ışık aksesuarı. Tehlike sesleri ve ışık uyaranları yalnızca hava aracı hareketi olmayan pencerelerde ve kuşları yaklaşma koridorlarından uzağa yönlendiren rotalarla kullanılır.' },
-  { id: 'planner', x: 710, y: 64, title: 'Görev planlayıcı', sub: 'uçuş tarifesine göre otomatik görev', kind: 'soft', planner: true, text: 'Havalimanının uçuş tarifesini ve gerçekleşen kalkış/varış zamanlarını okur, görevleri uçuşlar arasındaki boşluklara kendisi yerleştirir. Rüzgâr ve yağış verisine göre görevin yapılıp yapılamayacağına karar verir.' },
-  { id: 'edge', x: 710, y: 166, title: 'Kenar YZ sunucusu', sub: 'YOLO tabanlı FOD, çatlak ve hayvan tespiti', kind: 'soft', text: 'Drone görüntülerini havalimanı içinde işler. FOD, çatlak ve hayvan tespiti için YOLO tabanlı modeller çalışır. Sivil–askeri ortak kullanım nedeniyle veri buluta çıkmaz.' },
-  { id: 'twin', x: 710, y: 268, title: 'Pistin dijital ikizi ve panel', sub: 'harita, geçmiş kayıtlar, raporlar', kind: 'soft', text: 'Tespitleri pist haritası üzerinde konumlarıyla gösterir, geçmiş taramaları karşılaştırarak değişimi izler ve raporları üretir. Bu sitedeki 3D sahne, o dijital ikizin temsili bir gösterimi.' },
-  { id: 'tower', x: 710, y: 380, title: 'Kule onay ekranı', sub: 'insan onayı şart', kind: 'tower', focus: 'tower', text: 'Kule onaylamadan drone kalkmaz; kule görevi her an iptal edip drone’ları istasyona geri çağırabilir. Ekrana yalnızca havalimanının iç ağından erişilir.' },
+  { id: 'stationA', x: 365, y: 84, title: 'Petek A, pist 04 ucu', sub: 'Kâşif-1, Bekçi, nöbetçi direk', kind: 'station', focus: 'stationA', text: 'Altıgen hücrelerden oluşan yalıtımlı petek; her hücrede otomatik drone istasyonu (Dock 2 sınıfı: IP55, −25…45 °C, %20 → %90 şarj 32 dk). Pist ekseninden 180 m, şeridin dışında ve Ek 14 geçiş yüzeyinin altında. Arkadaki nöbetçi direk her iniş-kalkışta pisti termal ve görünür kamerayla izler.' },
+  { id: 'stationB', x: 365, y: 216, title: 'Petek B, pist 22 ucu', sub: 'Kâşif-2, İşçi/Bakıcı, FOD kutusu', kind: 'station', focus: 'stationB', text: 'Petek A’nın eşi. İki kâşif pistin birer yarısını aynı anda tarar (≈12 dk). İşçi bulunan ≤ 1 kg nesneyi vinçle toplar ve buradaki FOD kutusuna getirir; aynı gövde kamera başlığıyla kışın bakıcı olur.' },
+  { id: 'acc', x: 365, y: 348, title: 'Kast başlıkları', sub: 'hoparlör ve ışık · vinç · kamera', kind: 'grid', text: 'Bekçide kuş caydırma için hafif hoparlör ve ışık; işçide vinç, elektro-kalıcı mıknatıs ve yumuşak kıskaç; bakıcı rolünde RGB + termal kamera başlığı. Caydırma yalnızca hareket olmayan pencerelerde ve kuşları yaklaşma koridorlarından uzağa yönlendiren rotalarla.' },
+  { id: 'planner', x: 710, y: 64, title: 'Görev planlayıcı', sub: 'uçuş tarifesine göre otomatik görev', kind: 'soft', planner: true, text: 'Havalimanının uçuş tarifesini ve gerçekleşen kalkış/varış zamanlarını okur, görevleri kastlara atar ve uçuşlar arasındaki boşluklara yerleştirir; farklı kastlar aynı anda uçabilir. Rüzgâr ve yağış verisine göre görevin yapılıp yapılamayacağına karar verir.' },
+  { id: 'edge', x: 710, y: 166, title: 'Kenar YZ sunucusu', sub: 'YOLO tabanlı FOD, çatlak ve hayvan tespiti', kind: 'soft', text: 'Drone ve nöbetçi kamera görüntülerini havalimanı içinde işler: FOD, çatlak, hayvan ve acil durum tespiti için YOLO tabanlı modeller. RF/GNSS bütünlük izleyicisi de burada çalışır. Sivil–askeri ortak kullanım nedeniyle veri buluta çıkmaz.' },
+  { id: 'twin', x: 710, y: 268, title: 'Pistin dijital ikizi ve panel', sub: 'harita, geçmiş kayıtlar, raporlar', kind: 'soft', text: 'Kovanın ortak haritası: her drone onu okur ve ona yazar (feromon). Tespitleri konumlarıyla gösterir, geçmiş taramaları karşılaştırır ve raporları üretir. Bu sitedeki 3D sahne, o dijital ikizin temsili bir gösterimi.' },
+  { id: 'tower', x: 710, y: 380, title: 'Kule onay ekranı', sub: 'insan onayı şart', kind: 'tower', focus: 'tower', text: 'Kule onaylamadan drone kalkmaz; kule görevi her an iptal edip drone’ları peteklerine geri çağırabilir. Ekrana yalnızca havalimanının iç ağından erişilir.' },
 ]
 
-const OUTPUTS = ['Temiz pist raporu', 'Çatlak haritası', 'GRF pist durum verisi', 'Yaban hayatı uyarısı', 'Karbon raporu']
+const OUTPUTS = ['Temiz pist raporu', 'Toplama kaydı', 'Çatlak haritası', 'Acil durum uyarısı', 'Yaban hayatı uyarısı']
 
 const right = (n: Node) => ({ x: n.x + W, y: n.y + H / 2 })
 const left = (n: Node) => ({ x: n.x, y: n.y + H / 2 })
@@ -62,7 +62,7 @@ export function Architecture() {
           <g className="arch__heads">
             <text x={20} y={30}>Enerji adası</text>
             <line className="arch__rule arch__rule--energy" x1={20} x2={290} y1={42} y2={42} />
-            <text x={365} y={30}>Kovan istasyonları</text>
+            <text x={365} y={30}>Kovan petekleri</text>
             <line className="arch__rule arch__rule--station" x1={365} x2={635} y1={42} y2={42} />
             <text x={710} y={30}>Yazılım ve karar</text>
             <line className="arch__rule arch__rule--soft" x1={710} x2={980} y1={42} y2={42} />
@@ -135,7 +135,7 @@ export function Architecture() {
 
       <aside className="arch__detail" aria-live="polite">
         <p className={`arch__kind arch__kind--${node.x < 300 ? 'energy' : node.x < 700 ? 'station' : 'soft'}`}>
-          {node.x < 300 ? 'Enerji adası' : node.x < 700 ? 'Kovan istasyonları' : 'Yazılım ve karar'}
+          {node.x < 300 ? 'Enerji adası' : node.x < 700 ? 'Kovan petekleri' : 'Yazılım ve karar'}
         </p>
         <h3>{node.title}</h3>
         <p className="arch__detail-sub">{node.sub}</p>

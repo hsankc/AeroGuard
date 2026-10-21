@@ -35,10 +35,10 @@ const ROWS: { name: string; ex: string; v: boolean[]; strong: string; limit: str
     limit: 'İnsan dikkatine bağlı, kayıt üretmez, fosil yakıtlı',
   },
   {
-    name: 'AERO-GUARD',
+    name: 'AERO-GUARD kovanı',
     ex: 'Bölgesel havalimanı paketi',
     v: [true, true, true, true, true, false],
-    strong: 'Çok görevli, tarifeye duyarlı, yenilenebilir enerjili, düşük kurulum maliyeti',
+    strong: 'Görevine göre uzmanlaşmış kovan: tarama, toplama, caydırma, acil durumu ilk görme; tarifeye duyarlı, kendi enerjisini üretir',
     limit: 'Sürekli değil, periyodik izleme (düşük trafikte yeterli)',
     us: true,
   },

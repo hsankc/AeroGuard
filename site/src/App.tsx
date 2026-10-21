@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { LangProvider } from './i18n'
+import { EN } from './i18n/en'
 import { GlassNav } from './app/GlassNav'
 import { SiteFoot } from './app/SiteFoot'
 import { pageById } from './app/pages'
@@ -8,6 +9,7 @@ import { RouteView } from './pages/Routes'
 import { SimHost } from './sim/SimHost'
 import { useSim } from './sim/store'
 import { Assumptions } from './components/Assumptions'
+import { Presenter } from './present/Presenter'
 
 const OpsCenter = lazy(() => import('./ops/OpsCenter'))
 const ExploreHud = lazy(() => import('./explore/ExploreHud').then((m) => ({ default: m.ExploreHud })))
@@ -25,7 +27,8 @@ export default function App() {
   }, [opsOpen])
 
   useEffect(() => {
-    document.title = route.id === 'home' ? 'AERO-GUARD' : `${meta.nav} · AERO-GUARD`
+    const en = document.documentElement.lang === 'en'
+    document.title = route.id === 'home' ? 'AERO-GUARD' : `${en ? (EN[meta.nav] ?? meta.nav) : meta.nav} · AERO-GUARD`
   }, [route.id, meta.nav])
 
   // yeni sayfa başa açılır; blok verildiyse o bloğa kaydırılır (efekt DOM güncellendikten sonra çalışır)
@@ -42,6 +45,7 @@ export default function App() {
       </div>
       <SiteFoot />
       <Assumptions />
+      <Presenter />
       {opsOpen && (
         <Suspense fallback={null}>
           <OpsCenter />

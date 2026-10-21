@@ -77,7 +77,7 @@ function DayCard() {
         <span className="ops-muted">Planlayıcıdaki tarifeyle</span>
       </div>
       <p className="ops-phase" aria-live="polite">
-        {done ? 'Gün tamamlandı' : task ?? 'Drone’lar istasyonda, şarj oluyor'}
+        {done ? 'Gün tamamlandı' : task ?? 'Kovan peteklerinde, şarj oluyor'}
       </p>
       <div className="ops-coverage">
         <div className="ops-coverage__bar">
@@ -367,7 +367,7 @@ function CameraFeed() {
           <span>{d.speed.toFixed(1).replace('.', ',')} m/s</span>
           {d.mode === 'scan' && <span>geçiş {Math.min(3, Math.max(1, d.pass))}/3</span>}
         </div>
-        {d.alt < 1 && <p className="pip__idle">Drone {pip} istasyonda. Kamera akışı kalkıştan sonra başlar.</p>}
+        {d.alt < 1 && <p className="pip__idle">Drone {pip} peteğinde. Kamera akışı kalkıştan sonra başlar.</p>}
         <span className="pip__tag">Simülasyon görüntüsü</span>
       </div>
     </section>

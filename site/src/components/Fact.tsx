@@ -2,10 +2,13 @@ import { useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { FACTS, SOURCES, type FactId } from '../data/facts'
 import { useUi } from './uiStore'
+import { useNum, useTx } from '../i18n'
 
 /** Bir rakamı gösterir; üzerine gelince veya odaklanınca varsayımını ve kaynağını açar. */
 export function Fact({ id, children }: { id: FactId; children?: React.ReactNode }) {
   const fact = FACTS[id]
+  const num = useNum()
+  const tx = useTx()
   const ref = useRef<HTMLButtonElement>(null)
   const [pos, setPos] = useState<{ x: number; y: number; below: boolean } | null>(null)
   const tipId = useId()
@@ -37,7 +40,7 @@ export function Fact({ id, children }: { id: FactId; children?: React.ReactNode 
           useUi.getState().openAssumptions(id)
         }}
       >
-        {children ?? fact.value}
+        {children ?? num(fact.value)}
       </button>
       {pos &&
         createPortal(
@@ -51,8 +54,8 @@ export function Fact({ id, children }: { id: FactId; children?: React.ReactNode 
               transform: pos.below ? undefined : 'translateY(-100%)',
             }}
           >
-            <span className="fact-tip__label">{fact.label}</span>
-            {fact.note}
+            <span className="fact-tip__label">{tx(fact.label)}</span>
+            {tx(fact.note)}
             {src && <span className="fact-tip__src">Kaynak: {src.map((n) => `[${n}] ${SOURCES[n]}`).join(' ')}</span>}
             <span className="fact-tip__src">Tüm varsayımlar için tıklayın</span>
           </span>,

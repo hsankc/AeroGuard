@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react'
 import { PAGES } from './pages'
 import { href, type RouteId } from './router'
-import { useLang } from '../i18n'
+import { useLang, useTx } from '../i18n'
 import { useSim } from '../sim/store'
 import { useUi } from '../components/uiStore'
 import { openExplore } from '../explore/actions'
+import { startPresenting } from '../present/Presenter'
 import logo from '../assets/logo.webp'
 import './glassnav.css'
 
 /** Üst gezinme: cam çubuk, birincil sayfalar, sağda araçlar; dar ekranda açılır menü. */
 export function GlassNav({ current }: { current: RouteId }) {
   const { lang, setLang, t } = useLang()
+  const tx = useTx()
   const [menu, setMenu] = useState(false)
   const openOps = () => {
     setMenu(false)
@@ -39,12 +41,12 @@ export function GlassNav({ current }: { current: RouteId }) {
         <nav className="gnav__links" aria-label="Sayfalar">
           {primary.map((p) => (
             <a key={p.id} href={href(p.id)} aria-current={current === p.id ? 'page' : undefined}>
-              {p.nav}
+              {tx(p.nav)}
             </a>
           ))}
           {secondary.map((p) => (
             <a key={p.id} className="gnav__secondary" href={href(p.id)} aria-current={current === p.id ? 'page' : undefined}>
-              {p.nav}
+              {tx(p.nav)}
             </a>
           ))}
         </nav>
@@ -55,6 +57,9 @@ export function GlassNav({ current }: { current: RouteId }) {
           </button>
           <button type="button" className="gnav__tool" onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')} aria-label={lang === 'tr' ? 'Switch to English' : 'Türkçeye geç'}>
             {lang === 'tr' ? 'EN' : 'TR'}
+          </button>
+          <button type="button" className="gnav__tool gnav__present" onClick={startPresenting} title="Jüri için rehberli tur: oklarla ilerleyin">
+            {t({ tr: 'Sunum', en: 'Present' })}
           </button>
           <button
             type="button"
@@ -68,7 +73,7 @@ export function GlassNav({ current }: { current: RouteId }) {
             {t({ tr: 'Operasyon merkezi', en: 'Operations' })}
           </button>
           <button type="button" className="gnav__tool gnav__menu-btn" aria-expanded={menu} aria-controls="gnav-menu" onClick={() => setMenu((v) => !v)}>
-            {menu ? 'Kapat' : 'Menü'}
+            {menu ? tx('Kapat') : tx('Menü')}
           </button>
         </div>
       </div>
@@ -78,7 +83,7 @@ export function GlassNav({ current }: { current: RouteId }) {
           <nav aria-label="Tüm sayfalar">
             {PAGES.map((p) => (
               <a key={p.id} href={href(p.id)} aria-current={current === p.id ? 'page' : undefined}>
-                {p.nav}
+                {tx(p.nav)}
               </a>
             ))}
           </nav>
@@ -95,6 +100,16 @@ export function GlassNav({ current }: { current: RouteId }) {
               }}
             >
               3D’de keşfet
+            </button>
+            <button
+              type="button"
+              className="gnav__tool"
+              onClick={() => {
+                setMenu(false)
+                startPresenting()
+              }}
+            >
+              Sunum modu
             </button>
             <button
               type="button"

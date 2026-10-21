@@ -13,7 +13,9 @@ const RISKS: { name: string; short: string; p: Level; i: Level; m: string; lab?:
   { name: 'Kuvvetli rüzgâr nedeniyle taramanın yapılamaması', short: 'Kuvvetli rüzgâr', p: 'Orta', i: 'Orta', m: 'Rüzgâr verisine göre planlama; sınır aşılınca araçla denetime dönüş; gerçekleşme oranını KPI olarak izlemek.' },
   { name: 'Drone arızası ve pistte kalması', short: 'Drone arızası', p: 'Düşük', i: 'Yüksek', m: 'Pist dışı acil iniş noktaları, otomatik FOD bildirimi, dönüş doğrulanmadan rapor üretmemek.', lab: true },
   { name: 'YZ’nin nesne kaçırması veya yanlış alarm', short: 'YZ hatası', p: 'Orta', i: 'Yüksek', m: 'İnsan onayı, yerel veriyle ince ayar, aktif öğrenme, pilot boyunca araçla denetimin paralel sürmesi.' },
-  { name: 'GNSS / RF girişimi', short: 'GNSS/RF girişimi', p: 'Düşük', i: 'Orta', m: 'RTK + görsel konumlama, frekans koordinasyonu, iletişim kaybında otomatik iniş.', lab: true },
+  { name: 'GNSS karıştırma ve aldatma', short: 'GNSS karıştırma', p: 'Orta', i: 'Orta', m: 'Ön kontrolde RF/GNSS bütünlüğü; çok kaynaklı konum (çok bantlı GNSS, RTK, UWB, görsel, IMU); frekans atlamalı bağlantı ve LTE yedeği; BTK ve askerî birimle koordinasyon.', lab: true },
+  { name: 'Toplama sırasında nesnenin düşmesi', short: 'Toplama hatası', p: 'Düşük', i: 'Orta', m: 'Yalnızca ≤ 1 kg ve pist boşken; elektro-kalıcı mıknatıs güç kesilse de tutar; düşerse kâşif yeniden işaretler, saha ekibi kaldırır.', lab: true },
+  { name: 'Buzlanma koşulunda uçuş', short: 'Buzlanma', p: 'Düşük', i: 'Yüksek', m: 'METAR’da dondurucu sis, çisenti, yağmur, kar veya buz taneleri varsa uçmaz; yalnızca kırağı senaryosu; uçağın üzerinden asla geçmez.' },
   { name: 'Askeri alan nedeniyle görüntüleme kısıtı', short: 'Görüntüleme kısıtı', p: 'Orta', i: 'Orta', m: 'Verinin sahada kalması, görüntüleme alanının sınırlandırılması, erken paydaş görüşmesi.' },
   { name: 'Enerji üretiminin beklenenin altında kalması', short: 'Düşük üretim', p: 'Orta', i: 'Düşük', m: 'Temkinli kapasite faktörü, hibrit kaynak, şebeke yedeği.' },
   { name: 'Siber saldırı', short: 'Siber saldırı', p: 'Düşük', i: 'Yüksek', m: 'Şifreli iletişim, iç ağ, erişim kontrolü, düzenli güncelleme.' },
@@ -54,7 +56,7 @@ export function Safety() {
               <h3>Arızada pist dışına iniş</h3>
               <p>
                 RTK ve görsel konumlama birlikte kullanılır. Güç veya iletişim kaybında drone pist dışındaki acil iniş noktasına iner; indiği yer otomatik olarak FOD diye kuleye bildirilir.
-                İki drone istasyona döndüğü doğrulanmadan temiz pist raporu üretilmez.
+                İki kâşif peteğine döndüğü doğrulanmadan temiz pist raporu üretilmez.
               </p>
             </div>
           </li>

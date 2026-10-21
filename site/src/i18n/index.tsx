@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { EN } from './en'
 
 export type Lang = 'tr' | 'en'
 export type Text = { tr: string; en?: string }
@@ -41,4 +42,31 @@ export function useLang() {
   const ctx = useContext(LangContext)
   if (!ctx) throw new Error('useLang, LangProvider içinde kullanılmalı')
   return ctx
+}
+
+/** Türkçe metni sözlükten İngilizceye çevirir (karşılığı yoksa Türkçe kalır) */
+export function useTx() {
+  const { lang } = useLang()
+  return useCallback((s: string) => (lang === 'en' ? (EN[s] ?? s) : s), [lang])
+}
+
+/** Türkçe sayı ve birimi İngilizce yazıma çevirir: 1,8 → 1.8, 8.550 → 8,550, dk → min, bin $ → k$ */
+export function enNum(s: string) {
+  return s
+    .replace(/(\d)\.(\d{3})/g, '$1\u0001$2')
+    .replace(/(\d),(\d)/g, '$1.$2')
+    .replace(/\u0001/g, ',')
+    .replace(/%(\d[\d.,–-]*)/g, '$1%')
+    .replace(/ milyar \$/g, ' bn $')
+    .replace(/ bin \$/g, 'k $')
+    .replace(/ dk\b/g, ' min')
+    .replace(/ sn\b/g, ' s')
+    .replace(/ ay$/g, ' months')
+    .replace(/ gün$/g, ' day')
+    .replace(/ yolcu\/yıl/g, ' pax/yr')
+}
+
+export function useNum() {
+  const { lang } = useLang()
+  return useCallback((s: string) => (lang === 'en' ? enNum(s) : s), [lang])
 }

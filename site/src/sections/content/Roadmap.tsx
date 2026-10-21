@@ -18,8 +18,9 @@ const WPS = [
   { id: 'İP2', name: 'Görev planlayıcı ve dijital ikiz', from: 1, to: 9, act: 'Tarife entegrasyonu, rota planlama, panel ve kule ekranı', out: 'Çalışan yazılım, simülasyon raporu' },
   { id: 'İP3', name: 'İzin ve regülasyon', from: 0, to: 9, act: 'DHMİ ve SHGM görüşmeleri, SORA risk değerlendirmesi, mânia görüşü', out: 'Uçuş izni' },
   { id: 'İP4', name: 'Enerji adası', from: 4, to: 12, act: 'Yerel rüzgâr ve güneş ölçümü, tasarım, kurulum', out: 'Kurulu enerji adası' },
-  { id: 'İP5', name: 'Sınırlı pilot', from: 6, to: 9, act: 'Tek istasyon; uçuşsuz saatlerde apron ve taksi yolu taramaları', out: 'İlk pilot raporu' },
-  { id: 'İP6', name: 'Tam pilot ve ölçüm', from: 9, to: 18, act: 'İki istasyon, tüm modüller, KPI ölçümü', out: 'KPI doğrulama raporu' },
+  { id: 'İP5', name: 'Sınırlı pilot', from: 6, to: 9, act: 'Tek petek hücresi; uçuşsuz saatlerde apron ve taksi yolu taramaları', out: 'İlk pilot raporu' },
+  { id: 'İP6', name: 'Tam pilot ve ölçüm', from: 9, to: 18, act: 'İki petek ve kâşifler, tüm tarama görevleri, KPI ölçümü', out: 'KPI doğrulama raporu' },
+  { id: 'İP8', name: 'Kovanı büyütme', from: 12, to: 24, act: 'Bekçi ve işçi hücreleri, nöbetçi direkler, güvenli konum; soğuk iklimli bir havalimanında kış pilotu (bakıcı)', out: 'Çanakkale kovanı, kış pilotu raporu' },
   { id: 'İP7', name: 'Ticarileşme', from: 18, to: 30, act: 'İş modelinin doğrulanması, 3–5 havalimanına yaygınlaştırma', out: 'Ticari sözleşmeler' },
 ]
 

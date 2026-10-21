@@ -40,7 +40,7 @@ export function TowerModal() {
         <dl className="tower__facts num">
           <div>
             <dt>Görev</dt>
-            <dd>2 drone, 20 m irtifa, 3 geçiş</dd>
+            <dd>2 kâşif, 20 m irtifa, 3 geçiş</dd>
           </div>
           <div>
             <dt>Pencere</dt>
