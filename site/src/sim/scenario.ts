@@ -777,9 +777,15 @@ export class ScenarioDirector {
     }
     // durdu (vardı ya da yuvada): konu ile olay aynı karede, yavaş süzülme
     const toEvent = focus.clone().sub(p).setY(0)
-    const look = p.clone().lerp(V(focus.x, p.y, focus.z), toEvent.length() < 160 ? 0.3 : 0)
+    if (toEvent.length() >= 160) {
+      // olay uzakta (ör. bekçi çitten dumanı izliyor, kâşif yuvasında): konu önde, olay ufukta; bakış neredeyse yatay
+      const look = p.clone().addScaledVector(dir, 25 * size)
+      // süzülme yok: drone ile uzaktaki olay aynı hizada kalsın
+      return { look, offset: dir.clone().multiplyScalar(-55 * size).add(V(0, 6 * size, 0)), smooth: 0.8, key, label, orbit: false, subject: p }
+    }
+    // olay yakında: bakış noktası konunun biraz altında ve olaya doğru, kamera biraz üstte ve geride
+    const look = p.clone().lerp(V(focus.x, p.y, focus.z), 0.3)
     look.y = Math.max(0.5, p.y - 4 * size)
-    // bakış noktası konunun biraz altında, kamera biraz üstünde ve gerisinde: konu kadrajın ortasının hemen üstünde kalır
     return { look, offset: dir.clone().multiplyScalar(-30 * size).add(V(0, 10 * size, 0)), smooth: 0.8, key, label, orbit: true, subject: p }
   }
 
