@@ -770,15 +770,17 @@ export class ScenarioDirector {
     if (dir.lengthSq() < 1e-6) dir = V(1, 0, 0)
     dir.normalize()
     if (moving) {
-      // arkasından takip: konu ön planda, gittiği yer ileride
-      const look = p.clone().addScaledVector(dir, 16 * size)
-      return { look, offset: dir.clone().multiplyScalar(-34 * size).add(V(0, 12 * size + 2, 0)), smooth: 0.3, key, label, orbit: false, subject: p }
+      // arkasından takip: konu ön planda ve seçilir büyüklükte, gittiği yer ileride; hızlandıkça (sahne hızı) biraz geri çekil
+      const back = (16 + v.length() * 0.22) * size
+      const look = p.clone().addScaledVector(dir, 8 * size)
+      return { look, offset: dir.clone().multiplyScalar(-back).add(V(0, back * 0.32 + 2, 0)), smooth: 0.3, key, label, orbit: false, subject: p }
     }
     // durdu (vardı ya da yuvada): konu ile olay aynı karede, yavaş süzülme
     const toEvent = focus.clone().sub(p).setY(0)
     const look = p.clone().lerp(V(focus.x, p.y, focus.z), toEvent.length() < 160 ? 0.3 : 0)
-    look.y = p.y * 0.45
-    return { look, offset: dir.clone().multiplyScalar(-44 * size).add(V(0, 18 * size, 0)), smooth: 0.8, key, label, orbit: true, subject: p }
+    look.y = Math.max(0.5, p.y - 4 * size)
+    // bakış noktası konunun biraz altında, kamera biraz üstünde ve gerisinde: konu kadrajın ortasının hemen üstünde kalır
+    return { look, offset: dir.clone().multiplyScalar(-30 * size).add(V(0, 10 * size, 0)), smooth: 0.8, key, label, orbit: true, subject: p }
   }
 
   /** Seçime göre kare: otomatikte adımın çekimi, elle seçimde o konu */
@@ -828,8 +830,19 @@ export class ScenarioDirector {
           const len = dir.length()
           dir.normalize()
           const dist = shot.dist ?? (shot.at === 'tower' ? 70 : 34)
-          const look = at.clone().addScaledVector(dir, Math.min(140, len * 0.45)).setY(Math.max(4, at.y * 0.4))
-          return { look, offset: dir.clone().multiplyScalar(-dist).add(V(0, dist * 0.35, 0)), smooth: 1, key: 'p-' + shot.at, label: shot.at === 'tower' ? 'Kule' : 'Nöbetçi direği', orbit: false }
+          // bakılan nokta kulenin/direğin ilerisinde; kamera kulenin/direğin dist kadar gerisinde ve tepesinin biraz üstünde
+          const ahead = Math.min(140, len * 0.45)
+          const look = at.clone().addScaledVector(dir, ahead).setY(Math.max(4, at.y * 0.4))
+          const up = at.y + dist * 0.3 - look.y
+          return {
+            look,
+            offset: dir.clone().multiplyScalar(-(dist + ahead)).add(V(0, up, 0)),
+            smooth: 1,
+            key: 'p-' + shot.at,
+            label: shot.at === 'tower' ? 'Kule' : 'Nöbetçi direği',
+            orbit: false,
+            subject: at,
+          }
         }
         const at = shot.at === 'energy' ? V(LAYOUT.energy.x, 6, LAYOUT.energy.z) : V(...shot.at)
         const dist = shot.dist ?? 60
@@ -838,7 +851,8 @@ export class ScenarioDirector {
       case 'vehicle': {
         const v = r.responders.find((x) => !x.arrived) ?? r.responders[r.responders.length - 1]
         if (!v) return around(focus, 80, 40, 'event', 'Olay yeri')
-        return this.follow('veh', 'Müdahale aracı', v.group.position.clone(), focus, focus, dt, 0.85)
+        // araç modeli sade: yakın plan yerine yolu ve gittiği olayı da gösteren uzaklık
+        return this.follow('veh', 'Müdahale aracı', v.group.position.clone(), focus, focus, dt, 1.8)
       }
       case 'track': {
         const o = r.vars[shot.key] as THREE.Object3D | undefined

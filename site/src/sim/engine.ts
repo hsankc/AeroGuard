@@ -1375,7 +1375,7 @@ export class Engine {
       if (f) {
         // dikey (telefon) ekranda yatay görüş dar: konu kenarlardan taşmasın diye kamera geri çekilir (takipte daha az)
         const k = THREE.MathUtils.clamp(1.5 / this.camera.aspect, 1, 2.2)
-        f.offset.multiplyScalar(f.orbit ? k : Math.sqrt(k))
+        f.offset.multiplyScalar(f.subject ? Math.sqrt(k) : k)
         this.sceneCam.update(dt, f, this.camera, (a, b) => this.clearView(a, b, 4))
         this.look.copy(this.sceneCam.lookAt)
       }
