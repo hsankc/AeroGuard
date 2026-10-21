@@ -122,6 +122,8 @@ type State = {
   /** oynatılan senaryo (acil durum ya da buz haritası) ve sahne saati (simülasyon sn) */
   scene: string | null
   sceneT: number
+  /** senaryo kamerası: otomatik yönetmen, sabit konu ya da serbest uçuş */
+  sceneCam: 'auto' | 'event' | 'scout1' | 'scout2' | 'guard' | 'worker' | 'wide' | 'free'
 }
 
 type Actions = {
@@ -174,6 +176,7 @@ export const useSim = create<State & Actions>((set, get) => ({
   gnss: null,
   scene: null,
   sceneT: 0,
+  sceneCam: 'auto',
   set: (p) => set(p),
   pushLog: (kind, text, t) =>
     set((s) => ({ log: [...s.log.slice(-120), { id: ++logSeq, t: t ?? get().clock, kind, text }] })),

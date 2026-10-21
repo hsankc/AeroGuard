@@ -22,6 +22,27 @@ export type SceneId = 'fire' | 'excursion' | 'tire' | 'bird' | 'leak' | 'intrusi
 
 export type Beat = { t: number; text: string; kind?: 'alert' | 'ok' | 'info' }
 
+/**
+  Kamera çekimi: sahnenin her adımı neyi göstereceğini söyler.
+  event: olay yeri yakın plan · wide: genel bakış · drone: drone'u arkasından takip (vardığında yandan) ·
+  point: kule ya da nöbetçi direğinin omzundan olaya bakış, ya da bir noktanın çevresi · vehicle: müdahale aracı ·
+  track: sahnenin kendi nesnesi (izinsiz drone, acil inişteki uçak)
+*/
+export type Who = 'scout1' | 'scout2' | 'guard' | 'worker' | 'active'
+export type Shot =
+  | { on: 'event'; dist?: number }
+  | { on: 'wide' }
+  | { on: 'drone'; who: Who; toward?: [number, number, number] }
+  | { on: 'point'; at: [number, number, number] | 'tower' | 'mast' | 'energy'; dist?: number; label?: string }
+  | { on: 'vehicle' }
+  | { on: 'track'; key: string; dist?: number; label?: string }
+
+/** Kullanıcının kamera seçimi: otomatik yönetmen, sabit bir konu ya da serbest uçuş */
+export type CamPick = 'auto' | 'event' | 'scout1' | 'scout2' | 'guard' | 'worker' | 'wide' | 'free'
+
+/** Çözülmüş kare: bakılan nokta, kameranın ona göre yeri, takip sıkılığı (sn), süzülme izni */
+export type Frame = { look: THREE.Vector3; offset: THREE.Vector3; smooth: number; key: string; label: string; orbit: boolean; subject?: THREE.Vector3 }
+
 export type SceneCtx = {
   root: THREE.Group
   mission: Mission
@@ -46,7 +67,13 @@ type SceneDef = {
   focus: [number, number, number]
   radius: number
   height: number
-  beats: (Beat & { run?: (r: SceneRun) => void })[]
+  beats: (Beat & { run?: (r: SceneRun) => void; cam?: Shot })[]
+  /** ilk çekim (verilmezse olay yeri) */
+  cam?: Shot
+  /** ilk bu kadar simülasyon saniyesi 2× oynar (uyarı, kule, kalkış art arda gelir; kamera yetişsin); varsayılan 22 */
+  slow?: number
+  /** metni olmayan kamera geçişleri: ör. aracı birkaç saniye gösterip drone'a dönmek */
+  cues?: { t: number; cam: Shot }[]
   setup?: (r: SceneRun) => void
   tick?: (r: SceneRun, t: number, dt: number) => void
 }
@@ -134,18 +161,20 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [230, 4, 0],
     radius: 150,
     height: 70,
+    cam: { on: 'point', at: [250, 3, 4], dist: 60, label: 'Yangın' },
+    cues: [{ t: 34, cam: { on: 'drone', who: 'active' } }, { t: 150, cam: { on: 'vehicle' } }],
     setup: (r) => {
       r.airliner(V(250, 0, 6), 0)
       r.vars.fire = r.add(new Fire(V(249.5, 0.4, 2.2), 1.2))
     },
     beats: [
       { t: 0, text: 'Uçak indi; sol ana iniş takımında fren yangını başladı.', kind: 'alert' },
-      { t: 3, text: 'Petek B nöbetçi direği termal kamerada sıcak noktayı fark etti.', kind: 'alert', run: (r) => r.alert(r.mast(V(250, 0, 0)), V(249, 2, 2)) },
-      { t: 8, text: 'Kule ve itfaiye uyarıldı: konum ve termal görüntü (hedef ≤ 10 sn).', run: (r) => r.alert(TOWER_TOP, V(249, 2, 2), 30, '#f6b93b') },
-      { t: 14, text: 'Kule onayladı: en yakın kâşif kalkıyor.', run: (r) => r.c.mission.respond(r.nearestScout(V(250, 0, 0)), V(215, 0, -40), 30, 400) },
-      { t: 20, text: 'İtfaiye yola çıktı.', run: (r) => r.vehicle(runwayArff(V(250, 0, 6)), 20, 180, 'arff') },
+      { t: 3, cam: { on: 'point', at: 'mast' }, text: 'Petek B nöbetçi direği termal kamerada sıcak noktayı fark etti.', kind: 'alert', run: (r) => r.alert(r.mast(V(250, 0, 0)), V(249, 2, 2)) },
+      { t: 8, cam: { on: 'point', at: 'tower' }, text: 'Kule ve itfaiye uyarıldı: konum ve termal görüntü (hedef ≤ 10 sn).', run: (r) => r.alert(TOWER_TOP, V(249, 2, 2), 30, '#f6b93b') },
+      { t: 14, cam: { on: 'drone', who: 'active' }, text: 'Kule onayladı: en yakın kâşif kalkıyor.', run: (r) => r.c.mission.respond(r.nearestScout(V(250, 0, 0)), V(215, 0, -40), 30, 400) },
+      { t: 20, cam: { on: 'vehicle' }, text: 'İtfaiye yola çıktı.', run: (r) => r.vehicle(runwayArff(V(250, 0, 6)), 20, 180, 'arff') },
       { t: 110, text: 'Kâşif olay yerinde: 30 m’den, uçağın üzerine girmeden termal görüntü itfaiyeye akıyor.', kind: 'ok' },
-      { t: 180, text: 'İtfaiye olay yerinde (ICAO hedefi 3 dk). Kovan ekibe ilk dakikalarda göz oldu.', kind: 'ok' },
+      { t: 180, cam: { on: 'point', at: [250, 3, 4], dist: 85, label: 'Yangın' }, text: 'İtfaiye olay yerinde (ICAO hedefi 3 dk). Kovan ekibe ilk dakikalarda göz oldu.', kind: 'ok' },
     ],
   },
   excursion: {
@@ -157,18 +186,20 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [820, 4, 70],
     radius: 160,
     height: 75,
+    cam: { on: 'event', dist: 70 },
+    cues: [{ t: 34, cam: { on: 'drone', who: 'active' } }, { t: 140, cam: { on: 'vehicle' } }],
     setup: (r) => {
       const a = r.airliner(V(820, 0, 78), -0.38)
       a.rotation.z = 0.03
     },
     beats: [
       { t: 0, text: 'İnişte uçak pistin sağına çıktı, çimde durdu.', kind: 'alert' },
-      { t: 4, text: 'Nöbetçi direk iz takibiyle uçağın pistten çıktığını gördü.', kind: 'alert', run: (r) => r.alert(r.mast(V(820, 0, 78)), V(820, 3, 78)) },
-      { t: 8, text: 'Kule, itfaiye ve sağlık ekibi uyarıldı: uçağın konumu.', run: (r) => r.alert(TOWER_TOP, V(820, 3, 78), 30, '#f6b93b') },
-      { t: 14, text: 'Kule onayladı: en yakın kâşif kalkıyor.', run: (r) => r.c.mission.respond(r.nearestScout(V(820, 0, 78)), V(790, 0, 40), 32, 400) },
-      { t: 20, text: 'İtfaiye ve ambulans yola çıktı.', run: (r) => r.vehicle([...ARFF, V(700, 0, -40), V(790, 0, 55)], 20, 175, 'arff') },
+      { t: 4, cam: { on: 'point', at: 'mast' }, text: 'Nöbetçi direk iz takibiyle uçağın pistten çıktığını gördü.', kind: 'alert', run: (r) => r.alert(r.mast(V(820, 0, 78)), V(820, 3, 78)) },
+      { t: 8, cam: { on: 'point', at: 'tower' }, text: 'Kule, itfaiye ve sağlık ekibi uyarıldı: uçağın konumu.', run: (r) => r.alert(TOWER_TOP, V(820, 3, 78), 30, '#f6b93b') },
+      { t: 14, cam: { on: 'drone', who: 'active' }, text: 'Kule onayladı: en yakın kâşif kalkıyor.', run: (r) => r.c.mission.respond(r.nearestScout(V(820, 0, 78)), V(790, 0, 40), 32, 400) },
+      { t: 20, cam: { on: 'vehicle' }, text: 'İtfaiye ve ambulans yola çıktı.', run: (r) => r.vehicle([...ARFF, V(700, 0, -40), V(790, 0, 55)], 20, 175, 'arff') },
       {
-        t: 75,
+        t: 75, cam: { on: 'event', dist: 55 },
         text: 'Kâşif termal kamerayla uçağın dışındaki 3 kişiyi saydı; konumları ekibe gönderildi.',
         kind: 'ok',
         run: (r) => {
@@ -180,7 +211,7 @@ export const SCENES: Record<SceneId, SceneDef> = {
             r.add(new Person([V(x, 0, z)], 0, { thermal: true, color: '#f2c230' }))
         },
       },
-      { t: 175, text: 'Ekipler olay yerinde. Pist kapalı; kalkan parçalar için sonra tarama yapılacak.', kind: 'ok' },
+      { t: 175, cam: { on: 'event', dist: 90 }, text: 'Ekipler olay yerinde. Pist kapalı; kalkan parçalar için sonra tarama yapılacak.', kind: 'ok' },
     ],
   },
   tire: {
@@ -192,6 +223,8 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [-300, 4, 0],
     radius: 420,
     height: 170,
+    cam: { on: 'event', dist: 70 },
+    cues: [{ t: 260, cam: { on: 'event', dist: 80 } }],
     setup: (r) => {
       const f = r.c.fod
       f.add('tire', -320, 6)
@@ -201,16 +234,16 @@ export const SCENES: Record<SceneId, SceneDef> = {
     },
     beats: [
       { t: 0, text: 'Kalkışta lastik patladı; parçalar pistte.', kind: 'alert' },
-      { t: 4, text: 'Petek A nöbetçi direği parçalanmayı gördü.', kind: 'alert', run: (r) => r.alert(r.mast(V(-300, 0, 0)), V(-290, 1, 0)) },
-      { t: 9, text: 'Kule uyarıldı; sonraki harekete kadar pist kapatıldı.', run: (r) => r.alert(TOWER_TOP, V(-290, 1, 0), 30, '#f6b93b') },
-      { t: 15, text: 'Kâşifler hareket sonrası taramaya kalktı.', run: (r) => r.c.mission.launch('fod') },
+      { t: 4, cam: { on: 'point', at: 'mast' }, text: 'Petek A nöbetçi direği parçalanmayı gördü.', kind: 'alert', run: (r) => r.alert(r.mast(V(-300, 0, 0)), V(-290, 1, 0)) },
+      { t: 9, cam: { on: 'point', at: 'tower' }, text: 'Kule uyarıldı; sonraki harekete kadar pist kapatıldı.', run: (r) => r.alert(TOWER_TOP, V(-290, 1, 0), 30, '#f6b93b') },
+      { t: 15, cam: { on: 'drone', who: 'scout1' }, text: 'Kâşifler hareket sonrası taramaya kalktı.', run: (r) => r.c.mission.launch('fod') },
       {
-        t: 380,
+        t: 380, cam: { on: 'drone', who: 'worker' },
         text: 'Kâşif konumu işçiye bildirdi (sallanma dansı): işçi küçük parçaları topluyor; büyük lastik parçaları saha ekibine.',
         kind: 'ok',
         run: (r) => r.c.fod.items.filter((i) => i.cls === 'bolt' || i.cls === 'plastic').forEach((i) => r.c.mission.pickup(i)),
       },
-      { t: 760, text: 'Tarama bitti: rapor kuleye. Pist, saha ekibi büyük parçaları kaldırınca açılır.', kind: 'ok' },
+      { t: 760, cam: { on: 'event', dist: 90 }, text: 'Tarama bitti: rapor kuleye. Pist, saha ekibi büyük parçaları kaldırınca açılır.', kind: 'ok' },
     ],
   },
   bird: {
@@ -222,6 +255,8 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [-640, 6, 30],
     radius: 190,
     height: 80,
+    cam: { on: 'event', dist: 80 },
+    cues: [{ t: 80, cam: { on: 'drone', who: 'scout1' } }],
     setup: (r) => {
       r.vars.flock = r.add(new Flock(V(-600, 12, 60), 18))
     },
@@ -232,9 +267,9 @@ export const SCENES: Record<SceneId, SceneDef> = {
     },
     beats: [
       { t: 0, text: 'Pilot kalkıştan sonra kuş çarpması bildirdi.', kind: 'alert' },
-      { t: 6, text: 'Kule kovanı çağırdı: kalıntı araması ve sürüyü uzaklaştırma.', run: (r) => r.alert(TOWER_TOP, V(-650, 1, 5), 30, '#f6b93b') },
+      { t: 6, cam: { on: 'point', at: 'tower' }, text: 'Kule kovanı çağırdı: kalıntı araması ve sürüyü uzaklaştırma.', run: (r) => r.alert(TOWER_TOP, V(-650, 1, 5), 30, '#f6b93b') },
       {
-        t: 12,
+        t: 12, cam: { on: 'drone', who: 'guard' },
         text: 'Kâşif-1 kalıntıyı aramaya, Bekçi sürüye kalkıyor (iki kast aynı anda).',
         run: (r) => {
           r.c.mission.respond(r.c.mission.drones[0], V(-650, 0, 5), 15, 400)
@@ -242,7 +277,7 @@ export const SCENES: Record<SceneId, SceneDef> = {
         },
       },
       { t: 75, text: 'Bekçi hoparlör ve ışıkla sürüyü pistten ve yaklaşma koridorundan uzaklaştırdı.', kind: 'ok' },
-      { t: 95, text: 'Kâşif kalıntıyı buldu ve ortak haritaya işaretledi; saha ekibi kaldıracak.', kind: 'ok', run: (r) => r.c.pheromone.mark(-650, 5) },
+      { t: 95, cam: { on: 'point', at: [-650, 2, 5], dist: 45, label: 'Olay yeri' }, text: 'Kâşif kalıntıyı buldu ve ortak haritaya işaretledi; saha ekibi kaldıracak.', kind: 'ok', run: (r) => r.c.pheromone.mark(-650, 5) },
     ],
   },
   leak: {
@@ -254,17 +289,19 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [272, 4, -228],
     radius: 110,
     height: 55,
+    cam: { on: 'point', at: [275, 2, -231], dist: 40, label: 'Olay yeri' },
+    cues: [{ t: 40, cam: { on: 'drone', who: 'active' } }, { t: 130, cam: { on: 'vehicle' } }],
     setup: (r) => {
       r.vars.puddle = r.add(new Puddle(V(275.7, 0, -231), 0.06, 7))
     },
     beats: [
       { t: 0, text: 'Park eden uçağın sağ motorunun altında sızıntı başladı.', kind: 'alert' },
-      { t: 5, text: 'Nöbetçi PTZ kamera termal ve görünür görüntüde lekeyi fark etti.', kind: 'alert', run: (r) => r.alert(r.mast(V(275, 0, -231)), V(275.7, 0.5, -231)) },
-      { t: 10, text: 'Apron ve itfaiye uyarıldı.', run: (r) => r.alert(TOWER_TOP, V(275.7, 0.5, -231), 30, '#f6b93b') },
-      { t: 16, text: 'En yakın kâşif lekeyi izlemeye kalkıyor.', run: (r) => r.c.mission.respond(r.nearestScout(V(275, 0, -231)), V(300, 0, -255), 20, 400) },
-      { t: 24, text: 'İtfaiye köpükle yola çıktı.', run: (r) => r.vehicle([V(-126, 0, -190), V(150, 0, -195), V(258, 0, -240)], 24, 150, 'arff') },
-      { t: 115, text: 'Kâşif alanı ortak haritaya işaretledi ve büyümesini izliyor.', kind: 'ok', run: (r) => r.c.pheromone.mark(275.7, -231) },
-      { t: 150, text: 'İtfaiye olay yerinde. Kovan alanı izlemeyi sürdürüyor.', kind: 'ok' },
+      { t: 5, cam: { on: 'point', at: 'mast' }, text: 'Nöbetçi PTZ kamera termal ve görünür görüntüde lekeyi fark etti.', kind: 'alert', run: (r) => r.alert(r.mast(V(275, 0, -231)), V(275.7, 0.5, -231)) },
+      { t: 10, cam: { on: 'point', at: 'tower' }, text: 'Apron ve itfaiye uyarıldı.', run: (r) => r.alert(TOWER_TOP, V(275.7, 0.5, -231), 30, '#f6b93b') },
+      { t: 16, cam: { on: 'drone', who: 'active' }, text: 'En yakın kâşif lekeyi izlemeye kalkıyor.', run: (r) => r.c.mission.respond(r.nearestScout(V(275, 0, -231)), V(300, 0, -255), 20, 400) },
+      { t: 24, cam: { on: 'vehicle' }, text: 'İtfaiye köpükle yola çıktı.', run: (r) => r.vehicle([V(-126, 0, -190), V(150, 0, -195), V(258, 0, -240)], 24, 150, 'arff') },
+      { t: 115, cam: { on: 'point', at: [275, 2, -231], dist: 45, label: 'Olay yeri' }, text: 'Kâşif alanı ortak haritaya işaretledi ve büyümesini izliyor.', kind: 'ok', run: (r) => r.c.pheromone.mark(275.7, -231) },
+      { t: 150, cam: { on: 'point', at: [275, 2, -231], dist: 60, label: 'Olay yeri' }, text: 'İtfaiye olay yerinde. Kovan alanı izlemeyi sürdürüyor.', kind: 'ok' },
     ],
   },
   intrusion: {
@@ -276,15 +313,17 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [-1450, 6, -140],
     radius: 160,
     height: 70,
+    cam: { on: 'point', at: [-1500, 2, -180], dist: 45, label: 'Olay yeri' },
+    cues: [{ t: 3, cam: { on: 'drone', who: 'guard' } }, { t: 24, cam: { on: 'drone', who: 'guard' } }, { t: 130, cam: { on: 'vehicle' } }],
     setup: (r) => {
       r.add(new Person([V(-1505, 0, -185), V(-1460, 0, -160), V(-1420, 0, -120)], 0.8))
     },
     beats: [
       { t: 0, text: 'Bekçi çit devriyesinde: batı çitinde bir kişi içeri girdi.', kind: 'alert', run: (r) => r.c.mission.respond(r.c.mission.guard, V(-1440, 0, -140), 25, 400, V(-1440, 25, 120)) },
       { t: 6, text: 'Bekçi termal kamerada kişiyi gördü; konum ve görüntü güvenliğe.', kind: 'alert', run: (r) => r.alert(TOWER_TOP, V(-1460, 1, -160), 30, '#f6b93b') },
-      { t: 12, text: 'Güvenlik aracı yönlendirildi.', run: (r) => r.vehicle([V(330, 0, -300), V(-200, 0, -260), V(-1380, 0, -150)], 12, 150, 'security') },
-      { t: 60, text: 'Bekçi kişinin üstünde değil, yanında: izliyor ve yönünü güvenliğe aktarıyor.', kind: 'ok' },
-      { t: 150, text: 'Güvenlik ekibi olay yerinde.', kind: 'ok' },
+      { t: 12, cam: { on: 'vehicle' }, text: 'Güvenlik aracı yönlendirildi.', run: (r) => r.vehicle([V(330, 0, -300), V(-200, 0, -260), V(-1380, 0, -150)], 12, 150, 'security') },
+      { t: 60, cam: { on: 'drone', who: 'guard' }, text: 'Bekçi kişinin üstünde değil, yanında: izliyor ve yönünü güvenliğe aktarıyor.', kind: 'ok' },
+      { t: 150, cam: { on: 'event', dist: 60 }, text: 'Güvenlik ekibi olay yerinde.', kind: 'ok' },
     ],
   },
   rogue: {
@@ -296,11 +335,14 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [-250, 30, -120],
     radius: 380,
     height: 150,
+    cam: { on: 'track', key: 'rogueRoot', dist: 50, label: 'İzinsiz drone' },
+    cues: [{ t: 16, cam: { on: 'track', key: 'rogueRoot', dist: 50, label: 'İzinsiz drone' } }],
     setup: (r) => {
       const dv = new DroneVisual(9, '#e0384f', 'guard')
       r.c.root.add(dv.root)
       r.vars.rogue = dv
       r.vars.track = [dv.root]
+      r.vars.rogueRoot = dv.root
       // izinsiz drone küçük: uzaktan da seçilsin diye kırmızı, nabız gibi atan bir işaret
       const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: '#ff3b4f', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }))
       mark.scale.setScalar(20)
@@ -328,9 +370,9 @@ export const SCENES: Record<SceneId, SceneDef> = {
     },
     beats: [
       { t: 0, text: 'Tarifede olmayan küçük bir drone havalimanına yaklaşıyor.', kind: 'alert' },
-      { t: 3, text: 'Petek RF izleyicisi ve Remote ID: konumu, yönü ve operatörün yeri belirlendi.', kind: 'alert' },
-      { t: 8, text: 'Kule ve güvenlik uyarıldı. Kovan drone’ları yerde kalıyor; biz müdahale etmeyiz.' },
-      { t: 30, text: 'Kule hareketleri bekletiyor; karşı-İHA yetkisi askerî birimde. Kovan izlemeyi sürdürüyor.', kind: 'ok' },
+      { t: 3, cam: { on: 'point', at: 'mast' }, text: 'Petek RF izleyicisi ve Remote ID: konumu, yönü ve operatörün yeri belirlendi.', kind: 'alert' },
+      { t: 8, cam: { on: 'point', at: 'tower' }, text: 'Kule ve güvenlik uyarıldı. Kovan drone’ları yerde kalıyor; biz müdahale etmeyiz.' },
+      { t: 30, cam: { on: 'track', key: 'rogueRoot', dist: 50, label: 'İzinsiz drone' }, text: 'Kule hareketleri bekletiyor; karşı-İHA yetkisi askerî birimde. Kovan izlemeyi sürdürüyor.', kind: 'ok' },
     ],
   },
   quake: {
@@ -342,22 +384,24 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [0, 4, 0],
     radius: 900,
     height: 330,
+    cam: { on: 'point', at: [100, 1, -4], dist: 50, label: 'Çatlak' },
+    cues: [{ t: 150, cam: { on: 'drone', who: 'scout2' } }, { t: 300, cam: { on: 'drone', who: 'scout1' } }],
     setup: (r) => {
       r.c.root.add(cracks([V(-500, 0, 2), V(100, 0, -4), V(650, 0, 6)]))
       r.gridOutage()
     },
     beats: [
       { t: 0, text: 'Deprem: şebeke kesildi, havalimanı yardım uçuşları için pistin durumunu soruyor.', kind: 'alert' },
-      { t: 5, text: 'Kovan şebekeden bağımsız: petekler enerji adasının bataryasıyla çalışıyor.', kind: 'ok' },
-      { t: 10, text: 'Kule çağrısı: pist hasar taraması.', run: (r) => r.alert(TOWER_TOP, V(0, 1, 0), 30, '#f6b93b') },
-      { t: 15, text: 'Kâşifler pisti 20 m’den üç geçişle taramaya kalktı.', run: (r) => r.c.mission.launch('fod') },
+      { t: 5, cam: { on: 'point', at: 'energy', dist: 70 }, text: 'Kovan şebekeden bağımsız: petekler enerji adasının bataryasıyla çalışıyor.', kind: 'ok' },
+      { t: 10, cam: { on: 'point', at: 'tower' }, text: 'Kule çağrısı: pist hasar taraması.', run: (r) => r.alert(TOWER_TOP, V(0, 1, 0), 30, '#f6b93b') },
+      { t: 15, cam: { on: 'drone', who: 'scout1' }, text: 'Kâşifler pisti 20 m’den üç geçişle taramaya kalktı.', run: (r) => r.c.mission.launch('fod') },
       {
-        t: 240,
+        t: 240, cam: { on: 'point', at: [-500, 1, 2], dist: 50, label: 'Çatlak' },
         text: 'Çatlaklar ortak haritaya işaretlendi (konum ve fotoğrafla).',
         kind: 'ok',
         run: (r) => [-500, 100, 650].forEach((x) => r.c.pheromone.mark(x, 0)),
       },
-      { t: 760, text: 'Tarama ≈12 dk’da bitti: hasar haritası kuleye ve AFAD’a. Pistin kullanılabilirliğine yetkililer karar verir.', kind: 'ok' },
+      { t: 760, cam: { on: 'event', dist: 220 }, text: 'Tarama ≈12 dk’da bitti: hasar haritası kuleye ve AFAD’a. Pistin kullanılabilirliğine yetkililer karar verir.', kind: 'ok' },
     ],
   },
   grid: {
@@ -369,6 +413,8 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [LAYOUT.energy.x, 4, LAYOUT.energy.z],
     radius: 70,
     height: 30,
+    cam: { on: 'point', at: 'energy', dist: 55 },
+    cues: [{ t: 70, cam: { on: 'drone', who: 'scout2' } }],
     setup: (r) => r.gridOutage(),
     beats: [
       { t: 0, text: 'Şebeke kesildi.', kind: 'alert' },
@@ -376,13 +422,9 @@ export const SCENES: Record<SceneId, SceneDef> = {
       { t: 6, text: 'Teknik birim bilgilendirildi.' },
       { t: 12, text: 'Güneş ve türbin bataryayı doldurmaya devam ediyor; Çanakkale kovanında özerklik ≈1 gün.', kind: 'ok' },
       {
-        t: 20,
+        t: 20, cam: { on: 'drone', who: 'scout1' },
         text: 'Planlı tarama şebekesiz de kalkıyor: kâşifler peteklerinden havalandı.',
-        run: (r) => {
-          r.c.mission.launch('fod')
-          r.vars.focus = V(LAYOUT.stationA.x + 160, 4, LAYOUT.stationA.z * 0.5)
-          r.vars.zoom = 3.2
-        },
+        run: (r) => r.c.mission.launch('fod'),
       },
     ],
   },
@@ -395,13 +437,14 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [-1740, 10, 640],
     radius: 320,
     height: 130,
+    cam: { on: 'point', at: [-1800, 8, 705], dist: 110, label: 'Duman' },
     setup: (r) => {
       r.add(new Fire(V(-1780, 0, 720), 3.2, false))
       r.add(new Fire(V(-1830, 0, 690), 2.6, true))
     },
     beats: [
       { t: 0, text: 'Çitin dışında anız yangını; duman yükseliyor.', kind: 'alert', run: (r) => r.c.mission.respond(r.c.mission.guard, V(-1480, 0, 280), 30, 400, V(-1250, 25, 285)) },
-      { t: 5, text: 'Bekçi devriyede dumanı gördü.', kind: 'alert', run: (r) => r.alert(r.c.mission.guard.pos.clone(), V(-1780, 4, 720), 30) },
+      { t: 5, cam: { on: 'drone', who: 'guard', toward: [-1800, 10, 705] }, text: 'Bekçi devriyede dumanı gördü.', kind: 'alert', run: (r) => r.alert(r.c.mission.guard.pos.clone(), V(-1780, 4, 720), 30) },
       { t: 10, text: 'Kule uyarıldı: görüş ve dumanın yönü.', run: (r) => r.alert(TOWER_TOP, V(-1780, 4, 720), 30, '#f6b93b') },
       { t: 60, text: 'Bekçi çit hattından izliyor; duman pist yönüne değil. Kule görüşü izlemeyi sürdürüyor.', kind: 'ok' },
     ],
@@ -415,13 +458,15 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [480, 6, 200],
     radius: 220,
     height: 110,
+    cam: { on: 'point', at: 'tower' },
+    cues: [{ t: 240, cam: { on: 'vehicle' } }],
     setup: (r) => {
       r.add(new Person([V(520, 0, 232)], 0, { lying: true, thermal: true }))
     },
     beats: [
       { t: 0, text: 'Gece: kule bir personelin kaybolduğunu bildirdi.', kind: 'alert', run: (r) => r.alert(TOWER_TOP, V(480, 1, 200), 30, '#f6b93b') },
       {
-        t: 6,
+        t: 6, cam: { on: 'drone', who: 'guard' },
         text: 'Bekçi termal aramaya kalktı (şerit şerit, 30 m).',
         run: (r) =>
           r.c.mission.route(
@@ -438,9 +483,9 @@ export const SCENES: Record<SceneId, SceneDef> = {
             6,
           ),
       },
-      { t: 210, text: 'Bekçi termalde kişiyi buldu; konum güvenliğe gönderildi.', kind: 'ok', run: (r) => r.c.pheromone.mark(520, 232) },
+      { t: 210, cam: { on: 'point', at: [520, 1, 232], dist: 40, label: 'Olay yeri' }, text: 'Bekçi termalde kişiyi buldu; konum güvenliğe gönderildi.', kind: 'ok', run: (r) => r.c.pheromone.mark(520, 232) },
       { t: 215, text: 'Güvenlik ve sağlık ekibi yönlendirildi.', run: (r) => r.vehicle([V(330, 0, -300), V(330, 0, -60), V(500, 0, 215)], 215, 290, 'security') },
-      { t: 290, text: 'Ekip kişinin yanında.', kind: 'ok' },
+      { t: 290, cam: { on: 'point', at: [520, 1, 232], dist: 45, label: 'Olay yeri' }, text: 'Ekip kişinin yanında.', kind: 'ok' },
     ],
   },
   landing: {
@@ -452,6 +497,8 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [-300, 6, 0],
     radius: 1100,
     height: 360,
+    cam: { on: 'point', at: 'tower' },
+    cues: [{ t: 260, cam: { on: 'drone', who: 'scout2' } }, { t: 500, cam: { on: 'drone', who: 'scout1' } }, { t: 700, cam: { on: 'track', key: 'plane', dist: 160, label: 'Acil inişteki uçak' } }],
     setup: (r) => {
       const a = r.airliner(V(-7000, 330, 0), 0)
       a.visible = false
@@ -481,10 +528,10 @@ export const SCENES: Record<SceneId, SceneDef> = {
     },
     beats: [
       { t: 0, text: 'Kule: bir uçak teknik arızayla acil iniş yapacak, ≈13 dk sonra.', kind: 'alert', run: (r) => r.alert(TOWER_TOP, V(0, 1, 0), 30, '#f6b93b') },
-      { t: 5, text: 'Kâşifler inişten önce pisti taramaya kalktı.', run: (r) => r.c.mission.launch('fod') },
+      { t: 5, cam: { on: 'drone', who: 'scout1' }, text: 'Kâşifler inişten önce pisti taramaya kalktı.', run: (r) => r.c.mission.launch('fod') },
       { t: 760, text: 'Temiz pist raporu kuleye; kâşifler peteklerinde.', kind: 'ok' },
       { t: 775, text: 'Uçak indi; itfaiye pist kenarında hazırdı.', kind: 'alert' },
-      { t: 860, text: 'Uçak pisti boşalttı: kâşifler inişten hemen sonra yeniden taramaya kalkıyor.', kind: 'ok', run: (r) => r.c.mission.launch('fod') },
+      { t: 860, cam: { on: 'drone', who: 'scout1' }, text: 'Uçak pisti boşalttı: kâşifler inişten hemen sonra yeniden taramaya kalkıyor.', kind: 'ok', run: (r) => r.c.mission.launch('fod') },
     ],
   },
   ice: {
@@ -496,6 +543,8 @@ export const SCENES: Record<SceneId, SceneDef> = {
     focus: [270, 6, -227],
     radius: 75,
     height: 32,
+    cam: { on: 'event', dist: 55 },
+    cues: [{ t: 140, cam: { on: 'event', dist: 50 } }],
     setup: (r) => {
       // buz bölgeleri park eden uçağın yerel koordinatlarında: grubu uçağa bağla (sahne köküne değil)
       const z = new IceZones()
@@ -513,7 +562,7 @@ export const SCENES: Record<SceneId, SceneDef> = {
     beats: [
       { t: 0, text: 'Kış sabahı, −3 °C, açık ve sakin: kırağı koşulu. METAR’da dondurucu sis, çisenti, yağmur, kar yok: uçabilir.', kind: 'ok' },
       {
-        t: 6,
+        t: 6, cam: { on: 'drone', who: 'worker' },
         text: 'Bakıcı (işçinin kamera başlığıyla) Petek B’den kalkıyor.',
         run: (r) =>
           r.c.mission.route(
@@ -544,7 +593,7 @@ export class ScenarioDirector {
   private fired = new Set<number>()
   private t0: number | null = null
   private lastT = 0
-  private frame: { x: number; z: number; k: number } | null = null
+  private fit: { x: number; z: number; k: number } | null = null
   private box = new THREE.Box3()
 
   constructor(private ctx: () => SceneCtx) {}
@@ -564,7 +613,9 @@ export class ScenarioDirector {
     def.setup?.(this.run)
     this.arc = this.arcFor(id)
     this.t0 = null
-    this.frame = null
+    this.fit = null
+    this.vel.clear()
+    this.shotCur = null
   }
 
   /**
@@ -652,6 +703,153 @@ export class ScenarioDirector {
     return !!this.def && !!this.run && this.run.t >= this.def.duration
   }
 
+  private vel = new Map<string, { p: THREE.Vector3; v: THREE.Vector3 }>()
+  private shotCur: Shot | null = null
+  private shotSince = -99
+
+  /** Sahnenin o anki hızı: açılıştaki art arda adımlar 2× oynar, sonra sahnenin hızına çıkar */
+  rateNow() {
+    const d = this.def
+    if (!d || !this.run) return 1
+    if (d.rate <= 2) return d.rate
+    const slow = d.slow ?? 22
+    const k = THREE.MathUtils.clamp((this.run.t - slow) / 6, 0, 1)
+    return 2 + (d.rate - 2) * k
+  }
+
+  /** Otomatik modda şu anki çekim: zamanı gelmiş son adımın ya da geçişin kamerası */
+  autoShot(): Shot {
+    const d = this.def!
+    const t = this.run!.t
+    let shot: Shot = d.cam ?? { on: 'event' }
+    let at = -1
+    for (const b of d.beats) if (b.cam && b.t <= t && b.t >= at) [shot, at] = [b.cam, b.t]
+    for (const c of d.cues ?? []) if (c.t <= t && c.t >= at) [shot, at] = [c.cam, c.t]
+    return shot
+  }
+
+  private droneFor(who: Who, focus: THREE.Vector3): DroneSim {
+    const m = this.run!.c.mission
+    if (who === 'scout1') return m.drones[0]
+    if (who === 'scout2') return m.drones[1]
+    if (who === 'guard') return m.guard
+    if (who === 'worker') return m.worker
+    // görevdeki (havadaki) drone'lardan olaya en yakını; hiçbiri yoksa olaya en yakın kâşif
+    const busy = [...m.drones, m.guard, m.worker].filter((x) => x.airborne || x.active)
+    if (!busy.length) return this.run!.nearestScout(focus)
+    return busy.sort((a, b) => a.pos.distanceTo(focus) - b.pos.distanceTo(focus))[0]
+  }
+
+  private droneName(x: DroneSim) {
+    const m = this.run!.c.mission
+    if (x === m.drones[0]) return 'Kâşif-1'
+    if (x === m.drones[1]) return 'Kâşif-2'
+    if (x === m.guard) return 'Bekçi'
+    return this.id === 'ice' ? 'Bakıcı' : 'İşçi'
+  }
+
+  /** nesnenin hızı (m/sn, yatay), kareler arası konumdan yumuşatılmış */
+  private velocity(key: string, p: THREE.Vector3, dt: number) {
+    const s = this.vel.get(key)
+    if (!s || dt <= 0) {
+      this.vel.set(key, { p: p.clone(), v: V(0, 0, 0) })
+      return V(0, 0, 0)
+    }
+    const v = p.clone().sub(s.p).divideScalar(dt).setY(0)
+    s.v.lerp(v, 1 - Math.exp(-dt / 0.4))
+    s.p.copy(p)
+    return s.v.clone()
+  }
+
+  /** Hareket eden bir konunun karesi: yoldaysa arkasından, durduysa olayla birlikte yandan */
+  private follow(key: string, label: string, p: THREE.Vector3, goal: THREE.Vector3, focus: THREE.Vector3, dt: number, size = 1): Frame {
+    const v = this.velocity(key, p, dt)
+    const toGoal = goal.clone().sub(p).setY(0)
+    const moving = v.length() > 2.5
+    let dir = moving ? v.clone().normalize() : toGoal.length() > 30 ? toGoal.clone().normalize() : focus.clone().sub(p).setY(0)
+    if (dir.lengthSq() < 1e-6) dir = V(1, 0, 0)
+    dir.normalize()
+    if (moving) {
+      // arkasından takip: konu ön planda, gittiği yer ileride
+      const look = p.clone().addScaledVector(dir, 16 * size)
+      return { look, offset: dir.clone().multiplyScalar(-34 * size).add(V(0, 12 * size + 2, 0)), smooth: 0.3, key, label, orbit: false, subject: p }
+    }
+    // durdu (vardı ya da yuvada): konu ile olay aynı karede, yavaş süzülme
+    const toEvent = focus.clone().sub(p).setY(0)
+    const look = p.clone().lerp(V(focus.x, p.y, focus.z), toEvent.length() < 160 ? 0.3 : 0)
+    look.y = p.y * 0.45
+    return { look, offset: dir.clone().multiplyScalar(-44 * size).add(V(0, 18 * size, 0)), smooth: 0.8, key, label, orbit: true, subject: p }
+  }
+
+  /** Seçime göre kare: otomatikte adımın çekimi, elle seçimde o konu */
+  frame(pick: CamPick, realT: number, dt: number): Frame | null {
+    const d = this.def
+    const r = this.run
+    if (!d || !r) return null
+    // otomatikte her çekim en az 2,2 sn ekranda kalır; o arada birden çok adım geldiyse en sonuncusuna geçilir
+    if (pick === 'auto' || pick === 'free') {
+      const due = this.autoShot()
+      if (due !== this.shotCur && (this.shotCur === null || realT - this.shotSince >= 2.2)) {
+        this.shotCur = due
+        this.shotSince = realT
+      }
+    }
+    const shot: Shot =
+      pick === 'auto' || pick === 'free' ? (this.shotCur ?? this.autoShot()) : pick === 'event' ? { on: 'event' } : pick === 'wide' ? { on: 'wide' } : { on: 'drone', who: pick }
+    const focus = (r.vars.focus as THREE.Vector3 | undefined)?.clone() ?? V(...d.focus)
+    const base = this.arc?.mid ?? 2.2
+    const around = (look: THREE.Vector3, dist: number, h: number, key: string, label: string): Frame => ({
+      look,
+      offset: V(Math.cos(base) * dist, h, Math.sin(base) * dist),
+      smooth: 1,
+      key,
+      label,
+      orbit: true,
+    })
+    switch (shot.on) {
+      case 'event': {
+        const dist = shot.dist ?? THREE.MathUtils.clamp(d.radius * 0.5, 45, 260)
+        return around(focus, dist, dist * 0.5, 'event', 'Olay yeri')
+      }
+      case 'wide': {
+        const p = this.pose(realT)!
+        return { look: p.look, offset: p.pos.clone().sub(p.look), smooth: 1.2, key: 'wide', label: 'Genel bakış', orbit: false }
+      }
+      case 'drone': {
+        const x = this.droneFor(shot.who, focus)
+        const goal = shot.toward ? V(...shot.toward) : (x.plan[x.idx]?.p?.clone() ?? focus.clone())
+        return this.follow('d' + x.id, this.droneName(x), x.pos.clone(), goal, focus, dt)
+      }
+      case 'point': {
+        if (shot.at === 'tower' || shot.at === 'mast') {
+          // omuz üstü: kule ya da nöbetçi direği önde, uyarının gittiği olay ileride
+          const at = shot.at === 'tower' ? TOWER_TOP.clone() : r.mast(focus)
+          const dir = focus.clone().sub(at).setY(0)
+          const len = dir.length()
+          dir.normalize()
+          const dist = shot.dist ?? (shot.at === 'tower' ? 70 : 34)
+          const look = at.clone().addScaledVector(dir, Math.min(140, len * 0.45)).setY(Math.max(4, at.y * 0.4))
+          return { look, offset: dir.clone().multiplyScalar(-dist).add(V(0, dist * 0.35, 0)), smooth: 1, key: 'p-' + shot.at, label: shot.at === 'tower' ? 'Kule' : 'Nöbetçi direği', orbit: false }
+        }
+        const at = shot.at === 'energy' ? V(LAYOUT.energy.x, 6, LAYOUT.energy.z) : V(...shot.at)
+        const dist = shot.dist ?? 60
+        return around(at, dist, dist * 0.45, 'p-' + at.toArray().join(','), shot.label ?? (shot.at === 'energy' ? 'Enerji adası' : 'Olay yeri'))
+      }
+      case 'vehicle': {
+        const v = r.responders.find((x) => !x.arrived) ?? r.responders[r.responders.length - 1]
+        if (!v) return around(focus, 80, 40, 'event', 'Olay yeri')
+        return this.follow('veh', 'Müdahale aracı', v.group.position.clone(), focus, focus, dt, 0.85)
+      }
+      case 'track': {
+        const o = r.vars[shot.key] as THREE.Object3D | undefined
+        if (!o) return around(focus, 80, 40, 'event', 'Olay yeri')
+        const p = o.getWorldPosition(V(0, 0, 0))
+        const k = (shot.dist ?? 40) / 40
+        return this.follow('t-' + shot.key, shot.label ?? 'Olay yeri', p, focus, focus, dt, k)
+      }
+    }
+  }
+
   /**
    * Yörünge kamerası: olayın çevresinde yavaşça döner; engelli sahnede açık yayda git-gel yapar.
    * Olaya yakın uçan drone'lar ve müdahale araçları kadrajı kendine çeker; hepsi sığsın diye kamera
@@ -684,14 +882,14 @@ export class ScenarioDirector {
       const spread = Math.max(...[focus, ...near, ...subjects].map((p) => Math.hypot(p.x - x, p.z - z)))
       want = { x, z, k: Math.min(2.2, Math.max(1, (spread * 1.9) / arc.radius)) }
     }
-    if (!this.frame) this.frame = { ...want }
+    if (!this.fit) this.fit = { ...want }
     const s = 1 - Math.exp(-dt / 1.5)
-    this.frame.x += (want.x - this.frame.x) * s
-    this.frame.z += (want.z - this.frame.z) * s
-    this.frame.k += (want.k - this.frame.k) * s
+    this.fit.x += (want.x - this.fit.x) * s
+    this.fit.z += (want.z - this.fit.z) * s
+    this.fit.k += (want.k - this.fit.k) * s
     const swing = arc.half * 0.85
     const a = arc.full ? arc.mid + t * 0.035 : arc.mid + swing * Math.sin(t * Math.min(0.2, 0.035 / Math.max(0.05, swing)))
-    const f = this.frame
+    const f = this.fit
     const zoom = f.k * ((r.vars.zoom as number | undefined) ?? 1)
     const look = V(f.x, focus.y, f.z)
     return { look, pos: V(look.x + Math.cos(a) * arc.radius * zoom, arc.height * zoom, look.z + Math.sin(a) * arc.radius * zoom) }

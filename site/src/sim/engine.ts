@@ -17,6 +17,7 @@ import { PheromoneLayer } from './world/pheromone'
 import { glowTexture } from './world/textures'
 import { GnssLayer } from './world/gnss'
 import { ScenarioDirector, type SceneId } from './scenario'
+import { SceneCamera } from './scenecam'
 import { usePlanner } from '../planner/store'
 import { actual, CKZ_SCHEDULE, DAY_START, type Task } from '../planner/plan'
 import { DayRunner } from './day'
@@ -99,6 +100,8 @@ export class Engine {
   private gnssTimer = 0
   private sceneRoot = new THREE.Group()
   director: ScenarioDirector
+  /** senaryo kamerası: yönetmenin karesini yumuşakça izler, kullanıcı döndürüp yakınlaştırabilir */
+  readonly sceneCam = new SceneCamera()
   private lastSceneSync = 0
   private trailFrom = new THREE.Vector3()
   private energy: EnergyIsland
@@ -284,6 +287,33 @@ export class Engine {
       this.pointerIn = true
       this.pointerNdc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1)
     })
+    // senaryo sahnesi: sürükleyerek döndür, tekerlekle yakınlaştır (serbest modda bunu FlyControls yapar)
+    let sdrag: { x: number; y: number; id: number } | null = null
+    const sceneHand = () => this.mode === 'scene' && useSim.getState().sceneCam !== 'free'
+    canvas.addEventListener('pointerdown', (e) => {
+      if (!sceneHand() || (e.pointerType === 'mouse' && e.button !== 0)) return
+      sdrag = { x: e.clientX, y: e.clientY, id: e.pointerId }
+    })
+    window.addEventListener('pointermove', (e) => {
+      if (!sdrag || e.pointerId !== sdrag.id) return
+      this.sceneCam.drag(e.clientX - sdrag.x, e.clientY - sdrag.y)
+      sdrag.x = e.clientX
+      sdrag.y = e.clientY
+    })
+    const endDrag = (e: PointerEvent) => {
+      if (sdrag?.id === e.pointerId) sdrag = null
+    }
+    window.addEventListener('pointerup', endDrag)
+    window.addEventListener('pointercancel', endDrag)
+    canvas.addEventListener(
+      'wheel',
+      (e) => {
+        if (!sceneHand()) return
+        e.preventDefault()
+        this.sceneCam.wheel(e.deltaY)
+      },
+      { passive: false },
+    )
     canvas.addEventListener('pointerleave', () => {
       this.pointerIn = false
       this.setHovered(null)
@@ -347,7 +377,11 @@ export class Engine {
     this.mode = mode
     this.fly.enabled = mode === 'explore'
     if (prev === 'explore') this.leaveExplore()
-    if (prev === 'scene') this.director.stop()
+    if (prev === 'scene') {
+      this.director.stop()
+      this.viewShift = 0
+      this.camera.clearViewOffset()
+    }
     if (mode === 'scene') {
       if (prev === 'ops') this.look.copy(this.controls.target)
       this.startScene()
@@ -389,12 +423,33 @@ export class Engine {
     this.camera.clearViewOffset()
     this.director.start(id)
     this.buildLabels()
-    this.startCamBlend()
+    this.sceneCam.reset(this.camera)
     useSim.getState().set({ sceneT: 0 })
+  }
+
+  private viewShift = 0
+  private viewCheck = 0
+
+  /** Görüntünün merkezini üst kart ile alt şerit arasındaki boş alana taşı: konu arayüzün altında kalmasın */
+  private fitSceneView() {
+    this.viewCheck -= 1
+    if (this.viewCheck > 0) return
+    this.viewCheck = 15
+    const top = document.querySelector('.shud__top')?.getBoundingClientRect()
+    const bar = document.querySelector('.shud__bar')?.getBoundingClientRect()
+    const h = window.innerHeight
+    const w = window.innerWidth
+    const shift = top && bar ? Math.round(h / 2 - (top.bottom + bar.top) / 2) : 0
+    if (shift === this.viewShift) return
+    this.viewShift = shift
+    if (shift === 0) this.camera.clearViewOffset()
+    else this.camera.setViewOffset(w, h, 0, shift, w, h)
   }
 
   private occluders: THREE.Mesh[] | null = null
   private occOwners: THREE.Box3[] = []
+  /** yakınında kamera durmaması gereken yapılar (binalar, kule, hangar, enerji adası) */
+  private occNear: THREE.Box3[] = []
   private sightRay = new THREE.Raycaster()
 
   /**
@@ -405,12 +460,12 @@ export class Engine {
     if (!this.occluders) {
       const list: THREE.Mesh[] = []
       const size = new THREE.Vector3()
-      const add = (owner: THREE.Object3D) => {
+      const add = (owner: THREE.Object3D, building = true) => {
         const box = new THREE.Box3().setFromObject(owner).expandByScalar(3)
         box.getSize(size)
         if (size.x > 600 || size.z > 600) {
           // geniş grup: içindekilere tek tek bak; zemin ve pist gibi geniş yüzeyler atlanır
-          owner.children.forEach(add)
+          owner.children.forEach((c) => add(c, building))
           return
         }
         let tall = false
@@ -423,16 +478,19 @@ export class Engine {
           tall = true
         })
         if (tall) this.occOwners.push(box)
+        if (tall && building) this.occNear.push(box)
       }
       this.scene.updateMatrixWorld(true)
-      this.airfield.group.children.forEach(add)
-      ;[this.energy.group, this.parked, ...this.peteks.map((p) => p.group)].forEach(add)
+      this.airfield.group.children.forEach((c) => add(c))
+      ;[this.energy.group, ...this.peteks.map((p) => p.group)].forEach((g) => add(g))
+      // park eden uçak görüşü kapatabilir ama bina değil: yakınında kamera durabilir (buz haritasında bakıcının yanı)
+      add(this.parked, false)
       this.occluders = list
     }
     // kamera bir yapının 30 m yakınında, çatısının hemen üstünde olmasın: ön planı kaplar (konunun kendisi hariç)
     const near = (b: THREE.Box3) =>
       !b.containsPoint(to) && from.x > b.min.x - 30 && from.x < b.max.x + 30 && from.z > b.min.z - 30 && from.z < b.max.z + 30 && from.y < b.max.y + 30
-    if (this.occOwners.some(near)) return false
+    if (this.occNear.some(near)) return false
     const dir = to.clone().sub(from)
     const dist = dir.length()
     this.sightRay.set(from, dir.normalize())
@@ -1138,12 +1196,22 @@ export class Engine {
     }
   }
 
+  /** Senaryoda takip edilen drone havadaysa onun kamerası küçük pencerede gösterilir */
+  scenePipDrone(): DroneId | null {
+    const m = /^d([1-4])$/.exec(this.sceneCam.key)
+    if (this.mode !== 'scene' || !m) return null
+    const id = Number(m[1]) as DroneId
+    const d = [this.mission.drones[0], this.mission.drones[1], this.mission.guard, this.mission.worker][id - 1]
+    return d.airborne ? id : null
+  }
+
   private renderPip() {
     const slot = this.pipSlot
-    if (!slot || this.mode !== 'ops') return
+    if (!slot || (this.mode !== 'ops' && this.mode !== 'scene')) return
     const r = slot.getBoundingClientRect()
     if (r.width < 10 || r.height < 10) return
-    const id = useSim.getState().pipDrone
+    const id = this.mode === 'scene' ? this.scenePipDrone() : useSim.getState().pipDrone
+    if (!id) return
     const dv = this.droneVis[id - 1]
     const cam = dv.camera
     cam.aspect = r.width / r.height
@@ -1157,6 +1225,7 @@ export class Engine {
     dv.setVisible(true)
     this.renderer.setScissorTest(false)
     this.renderer.setViewport(0, 0, window.innerWidth, H)
+    if (this.mode !== 'ops') return
 
     // tespit kutuları
     const dets = useSim.getState().detections
@@ -1287,16 +1356,35 @@ export class Engine {
       this.fly.update(dt)
       return
     }
-    if (this.mode === 'hero' || this.mode === 'scene') {
+    if (this.mode === 'scene') {
+      // serbest: keşif modundaki gibi WASD ile uç
+      if (s.sceneCam === 'free') {
+        if (!this.fly.enabled) {
+          this.fly.enabled = true
+          this.fly.syncFromCamera()
+        }
+        this.fly.update(dt)
+        return
+      }
+      if (this.fly.enabled) {
+        this.fly.enabled = false
+        this.sceneCam.reset(this.camera)
+      }
+      this.fitSceneView()
+      const f = this.director.frame(s.sceneCam, this.realT, dt)
+      if (f) {
+        // dikey (telefon) ekranda yatay görüş dar: konu kenarlardan taşmasın diye kamera geri çekilir (takipte daha az)
+        const k = THREE.MathUtils.clamp(1.5 / this.camera.aspect, 1, 2.2)
+        f.offset.multiplyScalar(f.orbit ? k : Math.sqrt(k))
+        this.sceneCam.update(dt, f, this.camera, (a, b) => this.clearView(a, b, 4))
+        this.look.copy(this.sceneCam.lookAt)
+      }
+      return
+    }
+    if (this.mode === 'hero') {
       const want = new THREE.Vector3()
       const look = new THREE.Vector3()
-      const pose = this.mode === 'scene' ? this.director.pose(this.realT) : null
-      if (pose) {
-        // dikey (telefon) ekranda yatay görüş dar: sahnenin konusu kenarlardan taşmasın diye kamera geri çekilir
-        const k = THREE.MathUtils.clamp(1.5 / this.camera.aspect, 1, 2.2)
-        want.copy(pose.pos).sub(pose.look).multiplyScalar(k).add(pose.look)
-        look.copy(pose.look)
-      } else if (this.station === 'hero' || this.station === 'missions') this.followCam(dt, want, look)
+      if (this.station === 'hero' || this.station === 'missions') this.followCam(dt, want, look)
       else {
         const o = ORBITS[this.station]
         const a = o.a + (this.reducedMotion ? 0 : (this.realT - this.stationStart) * o.w)
@@ -1368,7 +1456,7 @@ export class Engine {
     this.realT += dtReal
     const s = useSim.getState()
     const cinematic = this.mode !== 'ops'
-    const speed = this.mode === 'scene' ? (s.paused ? 0 : (this.director.def?.rate ?? 1)) : cinematic ? 6 : s.paused ? 0 : s.speed
+    const speed = this.mode === 'scene' ? (s.paused ? 0 : this.director.rateNow()) : cinematic ? 6 : s.paused ? 0 : s.speed
     const dtSim = dtReal * speed
 
     // görev adımları: sabit alt adımlar

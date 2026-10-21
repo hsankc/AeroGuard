@@ -175,7 +175,94 @@
   background: var(--caste-worker);
 }
 
+/* takip edilen drone'un kamerası: motor bu kutunun yerine çizer, kutu yalnızca çerçeve */
+.shud__pip {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: min(260px, 26vw);
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-m, 12px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.shud__pip span {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(7, 16, 29, 0.78);
+  color: var(--ink);
+  font: 600 var(--fs-12) / 1.4 var(--font-ui);
+}
+
+/* kamera seçimi: tek satır, dar ekranda yana kayar */
+.shud__cams {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.shud__cams::-webkit-scrollbar {
+  display: none;
+}
+
+.shud__cams-label {
+  flex: none;
+  margin-right: 4px;
+  color: var(--ink-3);
+  font-size: var(--fs-12);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.shud__cams-label b {
+  color: var(--honey);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.shud__cam {
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-2);
+  font: 600 var(--fs-12) / 1 var(--font-ui);
+  cursor: pointer;
+}
+
+.shud__cam[aria-pressed='true'] {
+  border-color: var(--honey);
+  background: var(--honey);
+  color: #1d1408;
+}
+
+.shud__cam--reset {
+  border-style: dashed;
+}
+
+.shud__hint {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--ink-3);
+  font-size: var(--fs-12);
+}
+
 @media (max-width: 680px) {
+  .shud__hint,
+  .shud__pip {
+    display: none;
+  }
   .shud__top {
     padding: 8px 10px 8px 12px;
   }
