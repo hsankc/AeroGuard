@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { footprint } from './layout'
 import { glowTexture } from './textures'
+import { buildScout, buildWorker } from '../models/drones'
 
 /*
   Görünürlük için drone gerçek boyutun ≈2,5 katı modellenmiştir (≈1 m).
@@ -39,6 +40,7 @@ export class DroneVisual {
   private hook: THREE.Group | null = null
   private cargo: THREE.Mesh | null = null
   private winch = 0
+  private span = 0.6
 
   constructor(
     readonly id: number,
@@ -46,99 +48,26 @@ export class DroneVisual {
     readonly caste: DroneCaste = 'scout',
   ) {
     this.showFootprint = caste === 'scout'
-    const shell = new THREE.MeshStandardMaterial({ color: '#30363d', roughness: 0.45, metalness: 0.25 })
-    const shellLight = new THREE.MeshStandardMaterial({ color: '#4a525b', roughness: 0.5, metalness: 0.2 })
-    const accent = new THREE.MeshStandardMaterial({ color, roughness: 0.4, emissive: new THREE.Color(color), emissiveIntensity: 0.35 })
-    const propMat = new THREE.MeshStandardMaterial({ color: '#15181b', roughness: 0.6 })
-
-    const model = new THREE.Group()
-    model.scale.setScalar(DRONE_SCALE * (caste === 'worker' ? 1.45 : 1))
+    // gerçekçi model (gerçek ölçek), görünürlük için DRONE_SCALE ile büyütülür
+    const label = ({ 1: 'KÂŞİF-1', 2: 'KÂŞİF-2', 3: 'BEKÇİ', 4: 'İŞÇİ' } as Record<number, string>)[id] ?? ''
+    const built = caste === 'worker' ? buildWorker(label) : buildScout(caste === 'guard' ? 'guard' : 'scout', label)
+    const model = built.group
+    model.scale.setScalar(DRONE_SCALE)
     this.body.add(model)
     this.root.add(this.body)
+    this.props = built.props
+    this.discs = built.discs
+    this.span = built.span * DRONE_SCALE
+    const accent = new THREE.MeshStandardMaterial({ color, roughness: 0.4, emissive: new THREE.Color(color), emissiveIntensity: 0.35 })
 
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.075, 0.11), shell)
-    hull.castShadow = true
-    model.add(hull)
-    const top = new THREE.Mesh(new THREE.SphereGeometry(0.075, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), shellLight)
-    top.scale.set(1.55, 0.55, 0.72)
-    top.position.y = 0.035
-    model.add(top)
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.012, 0.113), accent)
-    stripe.position.y = -0.01
-    model.add(stripe)
-
-    // kollar, motorlar, pervaneler
-    const motorPos: [number, number][] = [
-      [0.12, -0.15],
-      [0.12, 0.15],
-      [-0.12, -0.15],
-      [-0.12, 0.15],
-    ]
-    for (const [mx, mz] of motorPos) {
-      const len = Math.hypot(mx, mz)
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(len, 0.016, 0.022), shell)
-      arm.position.set(mx / 2, 0.01, mz / 2)
-      arm.rotation.y = -Math.atan2(mz, mx)
-      arm.castShadow = true
-      model.add(arm)
-      const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.022, 0.035, 12), shellLight)
-      motor.position.set(mx, 0.025, mz)
-      model.add(motor)
-      const prop = new THREE.Group()
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.004, 0.022), propMat)
-      prop.add(blade)
-      prop.position.set(mx, 0.047, mz)
-      model.add(prop)
-      this.props.push(prop)
-      const disc = new THREE.Mesh(
-        new THREE.CircleGeometry(0.12, 24),
-        new THREE.MeshBasicMaterial({ color: '#1b1f24', transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide }),
-      )
-      disc.rotation.x = -Math.PI / 2
-      disc.position.set(mx, 0.048, mz)
-      disc.visible = false
-      model.add(disc)
-      this.discs.push(disc)
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.06, 0.008), shell)
-      leg.position.set(mx * 0.8, -0.03, mz * 0.8)
-      model.add(leg)
-    }
-
-    // gimbal ve kamera
-    const gimbal = new THREE.Mesh(new THREE.SphereGeometry(0.028, 14, 10), shellLight)
-    gimbal.position.set(0.1, -0.05, 0)
-    model.add(gimbal)
-    const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.02, 12), new THREE.MeshStandardMaterial({ color: '#0b0d10', metalness: 0.8, roughness: 0.2 }))
-    lens.position.set(0.1, -0.075, 0)
-    model.add(lens)
-    // RTK anteni
-    const rtk = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.012, 14), shellLight)
-    rtk.position.set(-0.05, 0.08, 0)
-    model.add(rtk)
-
-    if (caste === 'guard') {
-      // hafif hoparlör ve ışık çubuğu (kuş caydırma)
-      const horn = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.04, 0.06, 14, 1, true).rotateZ(-Math.PI / 2), accent)
-      horn.position.set(-0.02, -0.055, 0)
-      model.add(horn)
-      const bar = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 0.012, 0.02),
-        new THREE.MeshStandardMaterial({ color: '#fff', emissive: new THREE.Color('#ffd27a'), emissiveIntensity: 1.4 }),
-      )
-      bar.position.set(0, -0.045, 0.05)
-      model.add(bar)
-    }
     if (caste === 'worker') {
-      // vinç gövdesi; kablo ve başlık dünya ölçeğinde (kök gruba bağlı, eğilmez)
-      const pod = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.04, 0.07), shellLight)
-      pod.position.set(0, -0.06, 0)
-      model.add(pod)
+      // vinç kablosu ve başlık dünya ölçeğinde (kök gruba bağlı, eğilmez)
       this.cable = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1, 6).translate(0, -0.5, 0), new THREE.MeshStandardMaterial({ color: '#222', roughness: 0.6 }))
-      this.cable.position.y = -0.3
+      this.cable.position.y = -1.2
       this.cable.visible = false
       this.root.add(this.cable)
       this.hook = new THREE.Group()
-      const magnet = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.1, 14), new THREE.MeshStandardMaterial({ color: '#c0392b', roughness: 0.4, metalness: 0.4 }))
+      const magnet = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.15, 0.09, 20), new THREE.MeshPhysicalMaterial({ color: '#b3261e', roughness: 0.3, metalness: 0.6, clearcoat: 0.6 }))
       const ring = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.025, 6, 16).rotateX(Math.PI / 2), accent)
       this.hook.add(magnet, ring)
       this.hook.visible = false
@@ -150,11 +79,11 @@ export class DroneVisual {
 
     // seyir ışıkları: sol kırmızı, sağ yeşil, üstte beyaz çakar
     const red = sprite('#ff3b30', 0.9)
-    red.position.set(0.3, 0.05, -0.38)
+    red.position.set(this.span * 0.75, 0.05, -this.span * 0.75)
     const grn = sprite('#3dff7a', 0.9)
-    grn.position.set(0.3, 0.05, 0.38)
+    grn.position.set(this.span * 0.75, 0.05, this.span * 0.75)
     this.strobe = sprite('#ffffff', 0.9)
-    this.strobe.position.set(-0.1, 0.25, 0)
+    this.strobe.position.set(-0.1, caste === 'worker' ? 0.55 : 0.25, 0)
     this.navSprites.push(red, grn)
     this.body.add(red, grn, this.strobe)
 
@@ -259,7 +188,7 @@ export class DroneVisual {
     this.cable.visible = on
     this.hook.visible = true
     this.cable.scale.y = Math.max(0.01, this.winch)
-    this.hook.position.y = -0.3 - this.winch - 0.06
+    this.hook.position.y = -1.2 - this.winch - 0.06
     this.cargo.visible = carrying
     this.cargo.position.y = this.hook.position.y - 0.12
   }

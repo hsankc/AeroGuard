@@ -2,6 +2,7 @@ import type { RouteId } from '../app/router'
 import type { PickId } from '../sim/store'
 import { FACTS } from '../data/facts'
 import { allowedHeight, LAYOUT } from '../sim/world/layout'
+import type { HangarModelId } from '../hangar/models'
 
 /*
   Keşif modunda seçilen nesnenin bilgi kartı. Rakamlar sitedeki diğer yerlerle aynı kaynaktan.
@@ -14,7 +15,7 @@ export type PickInfo = {
   text: string
   rows?: [string, string][]
   live?: 'drone1' | 'drone2' | 'guard' | 'worker' | 'petekA' | 'petekB' | 'energy' | 'wind'
-  links?: { label: string; to: RouteId; block?: string }[]
+  links?: { label: string; to: RouteId; block?: string; model?: HangarModelId }[]
   ops?: string
 }
 
@@ -30,7 +31,7 @@ export const PICKS: Record<PickId, PickInfo> = {
     live: 'petekA',
     links: [
       { label: 'Petek istasyonu', to: 'kovan', block: 'petek' },
-      { label: 'Hangar’da aç', to: 'hangar', block: 'platformlar' },
+      { label: 'Hangar’da aç', to: 'hangar', block: 'model', model: 'cell' },
     ],
   },
   petekB: {
@@ -41,7 +42,7 @@ export const PICKS: Record<PickId, PickInfo> = {
     live: 'petekB',
     links: [
       { label: 'Petek istasyonu', to: 'kovan', block: 'petek' },
-      { label: 'Hangar’da aç', to: 'hangar', block: 'platformlar' },
+      { label: 'Hangar’da aç', to: 'hangar', block: 'model', model: 'cell' },
     ],
   },
   drone1: {
@@ -49,7 +50,7 @@ export const PICKS: Record<PickId, PickInfo> = {
     title: 'Kâşif drone',
     text: 'Pistin 04 yarısını 20 m irtifadan üç geçişle tarar (3,5 mm/piksel). Kule onayı olmadan kalkmaz.',
     live: 'drone1',
-    links: [{ label: 'Hangar’da aç', to: 'hangar', block: 'platformlar' }],
+    links: [{ label: 'Hangar’da aç', to: 'hangar', block: 'model', model: 'scout' }],
     ops: 'Bu görevi oynat',
   },
   drone2: {
@@ -57,7 +58,7 @@ export const PICKS: Record<PickId, PickInfo> = {
     title: 'Kâşif drone',
     text: 'Pistin 22 yarısını tarar; iki kâşif aynı yönde ve aralarında hep 1.175 m mesafeyle uçar.',
     live: 'drone2',
-    links: [{ label: 'Hangar’da aç', to: 'hangar', block: 'platformlar' }],
+    links: [{ label: 'Hangar’da aç', to: 'hangar', block: 'model', model: 'scout' }],
     ops: 'Bu görevi oynat',
   },
   guard: {
@@ -77,7 +78,7 @@ export const PICKS: Record<PickId, PickInfo> = {
     live: 'worker',
     links: [
       { label: 'Toplama adımları', to: 'gorevler', block: 'toplama' },
-      { label: 'Hangar’da aç', to: 'hangar', block: 'platformlar' },
+      { label: 'Hangar’da aç', to: 'hangar', block: 'model', model: 'worker' },
     ],
   },
   energy: {

@@ -1413,7 +1413,8 @@ export class Engine {
     // işçi: asılı kalınca vinç iner, nesneyi alınca kısa kabloyla taşır
     const w = this.mission.worker
     const hovering = w.mode === 'pickup' && w.speed < 0.3 && w.pos.y < 6
-    this.droneVis[3].setWinch(hovering && !w.carrying ? w.pos.y - 0.35 : 0, !!w.carrying, live ? dtSim : dtReal)
+    // kablo başlığın altından (≈1,2 m, gövde ölçeğiyle) yere kadar
+    this.droneVis[3].setWinch(hovering && !w.carrying ? w.pos.y - 1.55 : 0, !!w.carrying, live ? dtSim : dtReal)
     // bekçi: devriye boyunca feromon izi
     const g = this.mission.guard
     if (g.mode === 'patrol' && g.pos.distanceTo(this.trailFrom) > 70) {

@@ -16,6 +16,7 @@ import { IceMap } from '../sections/content/IceMap'
 import { ScanCalc } from '../sections/content/ScanCalc'
 import { AI } from '../sections/content/AI'
 import { HangarPlatforms, HangarTests } from '../sections/content/Hangar'
+import { HangarViewer } from '../hangar/HangarViewer'
 import { EmergencyPrinciple, EmergencyScenarios } from '../sections/content/Emergency'
 import { EnergyCalc } from '../sections/content/EnergyCalc'
 import { ImpactCalc } from '../sections/content/ImpactCalc'
@@ -126,6 +127,9 @@ function Gorevler() {
 function Hangar() {
   return (
     <Page meta={pageById('hangar')}>
+      <Block id="model" title="3D hangar" lead="Kovanın modelleri gerçek ölçekte. Döndürün, yakınlaştırın, parçalarına ayırın; işçide toplama ve kamera başlığını değiştirin.">
+        <HangarViewer />
+      </Block>
       <Block id="platformlar" title="Platformlar" lead="Referans platformlar ticari ürün sınıflarıdır; değerler üretici verisi, “doğrulanacak” yazanlar resmi veriyle kontrol edilecek.">
         <HangarPlatforms />
       </Block>

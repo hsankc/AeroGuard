@@ -1,0 +1,181 @@
+/* 3D hangar görüntüleyicisi */
+
+.hv {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.hv__stage {
+  position: relative;
+  min-height: 460px;
+  overflow: hidden;
+  border-radius: var(--radius-l);
+  /* stüdyo fonu: ortası açık gri-mavi, kenarlara doğru koyulaşır (koyu gövdeler seçilsin) */
+  background: radial-gradient(110% 85% at 50% 38%, rgba(196, 210, 228, 0.42), rgba(70, 90, 118, 0.3) 55%, rgba(12, 22, 38, 0.5) 100%);
+}
+
+.hv__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.hv__labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hv__label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--honey) 55%, transparent);
+  border-radius: 999px;
+  background: rgba(8, 16, 30, 0.82);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--fs-12);
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.hv__label.is-on {
+  background: var(--honey);
+  color: #1d1408;
+}
+
+.hv__hint,
+.hv__tag {
+  position: absolute;
+  bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(8, 16, 30, 0.6);
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  pointer-events: none;
+}
+
+.hv__hint {
+  left: 10px;
+}
+
+.hv__tag {
+  right: 10px;
+}
+
+.hv__side {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--radius-l);
+}
+
+.hv__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hv__tabs button {
+  padding: 6px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-2);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--fs-14);
+  cursor: pointer;
+}
+
+.hv__tabs button[aria-selected='true'] {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 22%, transparent);
+  color: var(--ink);
+}
+
+.hv__head .tile__label {
+  color: var(--c);
+}
+
+.hv__head h3 {
+  font-family: var(--font-display);
+  font-size: var(--fs-36);
+  line-height: 1.05;
+}
+
+.hv__controls {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.hv__part {
+  min-height: 92px;
+  padding: 12px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-m);
+  background: rgba(8, 16, 30, 0.35);
+}
+
+.hv__part b {
+  color: var(--honey);
+  font-family: var(--font-ui);
+}
+
+.hv__part p {
+  margin-top: 4px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+}
+
+.hv__muted {
+  color: var(--ink-3) !important;
+}
+
+.hv__specs {
+  display: grid;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+}
+
+.hv__specs > div {
+  display: grid;
+  grid-template-columns: 8.5em 1fr;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+}
+
+.hv__specs dt {
+  color: var(--ink-3);
+}
+
+.hv__specs dd {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .hv {
+    grid-template-columns: 1fr;
+  }
+  .hv__stage {
+    min-height: 380px;
+  }
+  .hv__tag {
+    top: 10px;
+    bottom: auto;
+  }
+}

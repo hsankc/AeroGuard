@@ -80,6 +80,7 @@ export const PAGES: PageMeta[] = [
     station: 'hangar',
     primary: true,
     blocks: [
+      { id: 'model', label: '3D hangar' },
       { id: 'platformlar', label: 'Platformlar' },
       { id: 'dayaniklilik', label: 'Dayanıklılık testleri' },
     ],

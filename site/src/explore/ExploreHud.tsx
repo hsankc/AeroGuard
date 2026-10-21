@@ -5,6 +5,7 @@ import { MODE_LABEL } from '../ops/labels'
 import { navigate } from '../app/router'
 import { PICKS, type PickInfo } from './info'
 import { closeExplore } from './actions'
+import { useHangar } from '../hangar/store'
 import './explore.css'
 
 /*
@@ -64,7 +65,8 @@ function Card() {
   if (!selected) return null
   const p = PICKS[selected]
   const rows = [...(p.rows ?? []), ...liveRows(p.live)]
-  const go = (to: Parameters<typeof navigate>[0], block?: string) => {
+  const go = (to: Parameters<typeof navigate>[0], block?: string, model?: Parameters<ReturnType<typeof useHangar.getState>['setModel']>[0]) => {
+    if (model) useHangar.getState().setModel(model)
     closeExplore()
     navigate(to, block)
   }
@@ -97,7 +99,7 @@ function Card() {
           </button>
         )}
         {p.links?.map((l) => (
-          <button key={l.label} type="button" className="pbtn pbtn--quiet" onClick={() => go(l.to, l.block)}>
+          <button key={l.label} type="button" className="pbtn pbtn--quiet" onClick={() => go(l.to, l.block, l.model)}>
             {l.label}
           </button>
         ))}

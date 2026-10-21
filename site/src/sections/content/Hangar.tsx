@@ -88,7 +88,7 @@ export function HangarPlatforms() {
         </div>
       </div>
       <p className="hangar__note">
-        Mimari donanımdan bağımsızdır; yerli muadiller değerlendirmeye açık. Modelleri döndürüp parçalarına ayırabileceğiniz 3D hangar bu sayfaya eklenecek.
+        Mimari donanımdan bağımsızdır; yerli muadiller değerlendirmeye açık.
       </p>
     </div>
   )
